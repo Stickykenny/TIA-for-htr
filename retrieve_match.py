@@ -12,17 +12,19 @@ def get_autographes( csv_source : str, column : int= 9 ) -> list[str]:
     with open(csv_source, newline='') as inputfile:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
-def fetch_images(directory : str, recursive : bool=True) -> list[str] :
+def fetch_images(directory : str,path : bool, recursive : bool=True) -> list[str] :
     images_files=[]
     for (dirpath, dirnames, filenames) in os.walk(directory):
-        images_files.extend([f for f in filenames if f.lower().endswith(image_extension)])
+        if path :
+            images_files.extend([dirpath+os.sep+f for f in filenames if f.lower().endswith(image_extension)])
+        else :
+            images_files.extend([f for f in filenames if f.lower().endswith(image_extension)])
         if not recursive :
             break
     return images_files
 
 
 def get_matches( autographes : list[str], images_files : list[str]) -> tuple[int,dict,dict]:
-
 
     # Create the dictionnary of {cote:autographe}
     cotes = {}
@@ -42,7 +44,7 @@ def get_matches( autographes : list[str], images_files : list[str]) -> tuple[int
     count = 0
     cotes_availables = {}
 
-    files = sorted([i for i in images_files if i.lower().startswith("ms")])
+    files = sorted([i for i in images_files if i.split(os.sep)[-1].lower().startswith("ms")])
     current_size = len(files)
     i = 0
     # To find matches more efficiently, we remove images already associated
@@ -57,6 +59,7 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
 
             #Normalize cote from the file to fit the csv
             filename = files[i].lower()
+            #print(filename)
             for cote_in_name in re.findall(r"(\d+(?:-\d+)*(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename) :
                 #print(filename+">> "+cote_in_name + " ==? "+ cote )
                 if cote== cote_in_name.replace(" ","") :
@@ -85,6 +88,8 @@ def get_length_list_dict(dictionnary : dict) ->int :
 
 if __name__ == "__main__" :
 
+    path = True # If True, result will show images relative path instead of just the filename
+
     # Retrieve csv data
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     autographes = get_autographes(csv_source, column=9)
@@ -98,9 +103,9 @@ if __name__ == "__main__" :
         os.remove("result.txt")
 
     for dir in next(os.walk('Images'))[1] :
-        path_images_dir = "Images/"+dir
+        path_images_dir = "Images/Ms 1620-5.jpg"
 
-        images_files = fetch_images(path_images_dir, True)
+        images_files = fetch_images(path_images_dir, path)
         print("For the folder  > "+path_images_dir)
         print("Image count > "+ str(len(images_files)) + "| Timer starting now ")
         start_time =time.time()
@@ -111,7 +116,6 @@ if __name__ == "__main__" :
         with open("result.txt", 'a+') as f:
             for i in cotes_associated.items() :
                 f.write(str(i[0])+":"+str(i[1])+"\n")
-
         
         # Statistics
         total_found += found_matches
