@@ -5,15 +5,12 @@ import time
 
 image_extension = (".jpg", ".png",".svg","jpeg")
 
-def get_autographes( csv_source : str ) -> list[str]:
-    csv_data = []
+def get_autographes( csv_source : str, column : int= 9 ) -> list[str]:
+    """
+    Retrieve into a list all values from the n column
+    """
     with open(csv_source, newline='') as inputfile:
-        return [row[9] for row in csv.reader(inputfile) if row[9] != ""]
-        #csv_data = [row for row in csv.reader(inputfile)]
-
-    """BMDV_name_convention = 'BMDV-ms'
-    autographes = [ i[9] for i in csv_data if i[9].startswith(BMDV_name_convention) ]
-    return autographes"""
+        return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 def fetch_images(directory : str, recursive : bool=True) -> list[str] :
     images_files=[]
@@ -33,7 +30,7 @@ def get_matches( autographes : list[str], images_files : list[str]) -> tuple[int
         #print(letter_name, end=" | ")
         cote = ""
         for numbers in re.findall(r"(\d+(?:-\d+)*(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", letter_name):
-            # Concatenate every cote from the same letter
+            # Concatenate every cotes from the same letter with "+" sign
             if cote != "" :
                 cote+= "+"
             cote+=numbers
@@ -44,18 +41,21 @@ def get_matches( autographes : list[str], images_files : list[str]) -> tuple[int
 
     count = 0
     cotes_availables = {}
+
     files = sorted([i for i in images_files if i.lower().startswith("ms")])
     current_size = len(files)
     i = 0
     # To find matches more efficiently, we remove images already associated
     while i < current_size :
-        # Loop though each cote_group (some letter have 2 cotes)
         cotes, count, cotes_availables, files, current_size, i = __compare_match(cotes, count, cotes_availables, files, current_size, i)
     return count,cotes, cotes_availables
 
 def __compare_match(cotes, count, cotes_availables, files, current_size, i):
     for cote_group in cotes.keys() :  
+        # Loop though each cote_group (some letter have 2 cotes)
         for cote in cote_group.split("+") :
+
+            #Normalize cote from the file to fit the csv
             filename = files[i].lower()
             for cote_in_name in re.findall(r"(\d+(?:-\d+)*(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename) :
                 #print(filename+">> "+cote_in_name + " ==? "+ cote )
@@ -66,11 +66,9 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
                         cotes_availables[cote] = []
                     cotes_availables[cote].append(files[i])
                     count+=1
-                    del files[i]
+                    del files[i] # Optimize by removing image already associated
                     current_size-=1
                     return cotes, count, cotes_availables, files, current_size, 0
-                
-                #print(filename+" || " + cote_group)
     else : 
         return cotes, count, cotes_availables, files, current_size, i+1
 
@@ -87,11 +85,15 @@ def get_length_list_dict(dictionnary : dict) ->int :
 
 if __name__ == "__main__" :
 
+    # Retrieve csv data
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
-    autographes = get_autographes(csv_source)
+    autographes = get_autographes(csv_source, column=9)
+
+    # Statistics
     total_found = 0
     letters_associated = 0
 
+    # Reset result output
     if os.path.exists("result.txt"):
         os.remove("result.txt")
 
@@ -103,21 +105,16 @@ if __name__ == "__main__" :
         print("Image count > "+ str(len(images_files)) + "| Timer starting now ")
         start_time =time.time()
         found_matches,cotes,cotes_associated = get_matches(autographes,images_files)
-        for i in cotes.items() :
-            #print(i)
-            pass
-        total_found += found_matches
-        letters_associated += len(cotes_associated)
-        print("Matches found  > " + str(found_matches) + " | Time taken : "+ str(time.time() - start_time))
+
+        print("Matches found  > " + str(found_matches) + " | Time taken : "+ str(time.time() - start_time))        
 
         with open("result.txt", 'a+') as f:
             for i in cotes_associated.items() :
-                #f.write(str(i)+"\n")
-                f.write(str(i[0])+";"+str(i[1])+"\n")
-                #print(str(i[0])+";"+str(i[1]))
-        for i in cotes :
-            #print(i)
-            pass
+                f.write(str(i[0])+":"+str(i[1])+"\n")
+
         
+        # Statistics
+        total_found += found_matches
+        letters_associated += len(cotes_associated)
         print("--------------------")
     print("Found in total "+str(total_found)+" matches of images with letter\nTotalling "+str(letters_associated)+" letters associated")
