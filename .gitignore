@@ -1,3 +1,7 @@
 ./Images/*
-./KrakenModel
-./MDV-site-Xavier-Lang
+MDV-site-Xavier-Lang/*
+Images/*
+ZipImages/*
+test/*
+batch_extract/*
+__pycache__/*
