@@ -38,7 +38,7 @@ def indexing_autographes(autographes: list[str]):
     return cotes
 
 
-def get_matches(autographes: list[str], images_files: list[str]) -> tuple[int, dict]:
+def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
 
     count = 0
     cotes_availables = {}
@@ -48,6 +48,7 @@ def get_matches(autographes: list[str], images_files: list[str]) -> tuple[int, d
     current_size = len(files)
     i = 0
     # To find matches more efficiently, we remove images found associated
+    # This can be optimized probably
     while i < current_size:
         cotes, count, cotes_availables, files, current_size, i = __compare_match(
             cotes, count, cotes_availables, files, current_size, i)

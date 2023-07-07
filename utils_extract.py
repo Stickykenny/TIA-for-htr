@@ -50,10 +50,9 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract"):
     """
     Extract all images from the target dictionnary to the output_dir
     """
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
     for item in target.items():
-        print(item)
+        # print(item)
         for image in [img for img in item[1]]:
             __copy_file(image, output_dir)
 
@@ -83,27 +82,28 @@ def extract_filelink_from_drive(csv_source: str, c1: int, c2: int = -1, list_to_
     return result
 
 
-def batch_download_pdf_gdrive(links: dict, output_dir: str = "", quiet: int = 1):
+def batch_download_pdf_gdrive(links: dict, output_dir: str = "", quiet: int = 1, name_associated: dict = None):
     """
     Currently programmed for pdf associated with only 1 image
     """
     output_dir_checker = output_dir != ""
     quiet_download = True if quiet < 2 else False
-    if output_dir_checker:
-        os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     for item in links.items():
-        if quiet >= 1:
-            print("Downloading > "+str(item))
+        # TODO Check if already exists
         url = item[1]
+        # By default, name of the pdf will be the cote
+        output_name = item[0]
+        if name_associated:
+            output_name = name_associated[item[0]][0].split(os.sep)[-1]
         if (output_dir_checker):
-            gdown_download(url=url, output=output_dir+os.sep +
-                           item[0]+".pdf", quiet=quiet_download, fuzzy=True)
-        else:
-            gdown_download(
-                url=url, output=item[0]+".pdf", quiet=quiet_download, fuzzy=True)
+            output_name = output_dir+os.sep + output_name[:-4]+".pdf"
 
-        pass
+        if quiet >= 1:
+            print("Downloading > "+str(item)+" to "+output_name)
+        gdown_download(url=url, output=output_name,
+                       quiet=quiet_download, fuzzy=True)
 
 
 if __name__ == "__main__":
