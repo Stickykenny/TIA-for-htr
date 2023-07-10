@@ -9,6 +9,7 @@ from gdown import download as gdown_download
 
 
 def get_column_values(csv_source: str, column: int = 9) -> list[str]:
+    # TODO replace with extract_column_from_csv
     """
     Retrieve into a list all values from the n column
     """
@@ -57,9 +58,9 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract"):
             __copy_file(image, output_dir)
 
 
-def extract_filelink_from_drive(csv_source: str, c1: int, c2: int = -1, list_to_compare: list[str] = []):
+def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_compare: list[str] = []) -> dict:
     """
-    Extract file at column c1 from google sheet
+    Extract value at column c1 from google sheet
     where value in column c2 is present in list_to_compare
     """
     list_to_compare = sorted(list_to_compare)
@@ -86,6 +87,9 @@ def batch_download_pdf_gdrive(links: dict, output_dir: str = "", quiet: int = 1,
     """
     Currently programmed for pdf associated with only 1 image
     """
+    print("DEPRECATED, avoiding automation of google services")
+    raise AssertionError
+    return
     output_dir_checker = output_dir != ""
     quiet_download = True if quiet < 2 else False
     os.makedirs(output_dir, exist_ok=True)
@@ -113,7 +117,7 @@ if __name__ == "__main__":
 
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     print("extract link")
-    links = extract_filelink_from_drive(csv_source, c1=3, c2=9,
-                                        list_to_compare=list(letters_fetched.keys()))
+    links = extract_column_from_csv(csv_source, c1=3, c2=9,
+                                    list_to_compare=list(letters_fetched.keys()))
     print(links)
     batch_download_pdf_gdrive(links, output_dir="test/extract_pdf")

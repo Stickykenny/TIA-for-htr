@@ -43,7 +43,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = True, output_file: st
         for file in pdf_files:
             if file.split(".")[-1] != "pdf":
                 break
-            new_filename = file[:-3]+"txt"
+            new_filename = file[:-3]+"gt.txt"
             with open(output_folder+os.sep+new_filename, 'w') as new_file:
                 new_file.write(extract_pdf_text(path_pdfs_dir+os.sep+file))
         print("Check "+os.getcwd()+os.sep+output_folder+os.sep)
