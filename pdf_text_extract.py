@@ -4,9 +4,14 @@ import fitz  # import PyMuPdf better than PyPDF due to spaces appearing in words
 
 def extract_pdf_text(path: str) -> str:
     """
-    :param a:
-    :raise ValueError: 
-    :return: 
+    Extract text from a pdf file
+
+    Parameters :
+        path : 
+            Path of the pdf file
+
+    Return :
+        Text extracted from the pdf
     """
     if path.split(".")[-1] != "pdf":
         raise ValueError("File introduced isn't a pdf")
@@ -19,8 +24,30 @@ def extract_pdf_text(path: str) -> str:
         return text
 
 
-def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = True, output_file: str = "tmp_regroup.txt",
+def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: str = "tmp_regroup.txt",
                        pages_separator: str = "\n"+">"*10+"\n", output_folder: str = "text_extracted") -> None:
+    """
+    Given a directory, extract from each pdf files their text data.
+
+    Parameters :
+        path_pdfs_dir :
+            Path to the directory containing pdf files
+        regroup :
+            If True, all texts extracted will be outputed into a single text file
+            (default : False)
+        output_file :
+            Name of the output file if texts are regrouped
+            (default = "tmp_regroup.txt")
+        pages_separator :
+            Separator used when texts are regrouped
+            (default = "\n"+">"*10+"\n")
+        output_folder :
+            Directory where files are saved
+            (default = "text_extracted" =
+
+    Return :
+        None
+    """
 
     pdf_files = []
     for (_, _, filenames) in os.walk(path_pdfs_dir):

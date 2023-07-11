@@ -10,24 +10,33 @@ from gdown import download as gdown_download
 
 def get_column_values(csv_source: str, column: int = 9) -> list[str]:
     # TODO replace with extract_column_from_csv
-    """
-    Retrieve into a list all values from the n column
+    """Retrieve into a list all values from the n column
     """
     with open(csv_source, newline='') as inputfile:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 
-def get_letter_with_n_image(filename: str, n: int = 0) -> dict:
+def get_letter_with_n_image(file: str, n: int = -1) -> dict:
     """
-    Print all letters' cote having only n image
-    if n = 0, this function will simply convert the file into a python dictionnary
+    Retrieve all letters' cote having only n image
+    if n = -1, this function will simply convert the file into a python dictionnary
+
+    Parameters :
+        file :
+            The path of the file containing a dict
+        n : 
+            The sound the animal makes
+
+    Return :
+        The dictionnary of every letter having only n images
     """
+
     letters_fetched = dict()
-    with open(filename, 'r') as f:
+    with open(file, 'r') as f:
         for line in f.readlines():
             line = line.split(":")
             retrieved_list = literal_eval(line[1])
-            if n != 0:
+            if n != -1:
                 if (len(retrieved_list) != n):
                     continue
             # print(line[0]+","+str(retrieved_list))
@@ -47,9 +56,18 @@ def __copy_file(filename, dir_target, file_rename: str = ""):
                       dir_target+"os.sep"+file_rename)
 
 
-def batch_extract_copy(target: dict, output_dir: str = "batch_extract"):
+def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
     """
     Extract all images from the target dictionnary to the output_dir
+
+    Parameters :
+        target :
+            Dictionnary containing the path of wanted images in dict values
+        output_dir :
+            Directory where file will be copied to
+
+    Return :
+        None
     """
     os.makedirs(output_dir, exist_ok=True)
     for item in target.items():
@@ -60,8 +78,21 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract"):
 
 def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_compare: list[str] = []) -> dict:
     """
-    Extract value at column c1 from google sheet
+    Extract value at column c1 from a csv
     where value in column c2 is present in list_to_compare
+
+    Parameters :
+        csv_source :
+            The path to the CSV
+        c1 :
+            Index of the column where values will be extracted
+        c2 :
+            Index of the column where IDs are stored
+        list_to_compare :
+            List of IDs to compare with column c2
+
+    Return :
+        Dictionnary of ID:value_c1 where c2 value is in list_to_compare
     """
     list_to_compare = sorted(list_to_compare)
     result = {}
@@ -88,7 +119,7 @@ def batch_download_pdf_gdrive(links: dict, output_dir: str = "", quiet: int = 1,
     Currently programmed for pdf associated with only 1 image
     """
     print("DEPRECATED, avoiding automation of google services")
-    raise AssertionError
+    raise AssertionError("DEPRECATED, avoiding automation of google services")
     return
     output_dir_checker = output_dir != ""
     quiet_download = True if quiet < 2 else False

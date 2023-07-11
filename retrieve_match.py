@@ -7,6 +7,20 @@ image_extension = (".jpg", ".png", ".svg", "jpeg")
 
 
 def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str]:
+    """
+    Retrieve every image file in the directory indicated
+
+    Parameters :
+        directory :
+            Directory to search images
+        path :
+            If True, images will be fetched with their relative path instead of their filename
+        recursive :
+            If True, the search will also go into subdirectory
+
+    Return :
+        List of all images fetched in the given directory
+    """
     images_files = []
     for (dirpath, subdirnames, filenames) in os.walk(directory):
         if path:
@@ -21,7 +35,17 @@ def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str
 
 
 def indexing_autographes(autographes: list[str]):
-    # Create the dictionnary of {cote:autographe}
+    """
+    Retrieve into a dictionnary the association cote->autographe from a list of autographes
+    This function is highly fitted for naming convention of "MsXXX-X.. .jpg"
+
+    Parameters :
+        autographes :
+            List of autographes
+
+    Return :
+        Dictionnary associating cote->autographe
+    """
     cotes = {}
     for letter_name in autographes:
         # print(letter_name, end=" | ")
@@ -39,7 +63,18 @@ def indexing_autographes(autographes: list[str]):
 
 
 def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
+    """
+    Associate every cotes their images if it exists
 
+    Parameters :
+        cotes :
+            Dictionnary of cotes
+        images_files :
+            List containing paths to images
+
+    Return :
+        Number of matches found, Dictionnary of available cotes with images
+    """
     count = 0
     cotes_availables = {}
 
@@ -56,6 +91,9 @@ def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
 
 
 def __compare_match(cotes, count, cotes_availables, files, current_size, i):
+    """
+    Private function used to loop though every cote, it was created because 'break' couldn't break out of outer loop
+    """
     for cote_group in cotes.keys():
         # Loop though each cote_group (some letter have 2 cotes)
         for cote in cote_group.split("+"):
@@ -79,18 +117,11 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
         return cotes, count, cotes_availables, files, current_size, i+1
 
 
-def get_length_list_dict(dictionnary: dict) -> int:
-    length = 0
-    for item in dictionnary.values():
-        length += len(item)
-    return length
-
-# Dictionnaire
-# cotes : [ code : nom complet de l'autographe ]
-# cotes_available : [ code : [ liste des noms de fichiers images ]]
-
-
 if __name__ == "__main__":
+
+    # Dictionnaire
+    # cotes : [ code : nom complet de l'autographe ]
+    # cotes_available : [ code : [ liste des noms de fichiers images ]]
 
     path = False  # If True, result will show images relative path instead of just the filename
 
