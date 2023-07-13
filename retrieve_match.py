@@ -2,6 +2,7 @@ import os
 import re
 import time
 from utils_extract import get_column_values
+from hashlib import sha256
 
 image_extension = (".jpg", ".png", ".svg", "jpeg")
 
@@ -133,12 +134,17 @@ if __name__ == "__main__":
     total_found = 0
     letters_associated = 0
 
+    # Filename of the save will be based on a hash made on result of os.walk('Images')
+    hash_filename = sha256(
+        str([i for i in os.walk("Images")]).encode('utf-8')).hexdigest()
+    result_filepath = "tmp"+os.sep+"save" + \
+        os.sep+"match" + str(hash_filename)+".txt"
     # Reset result output
-    if os.path.exists("result.txt"):
-        os.remove("result.txt")
+    if os.path.exists(result_filepath):
+        os.remove(result_filepath)
 
     for dir in next(os.walk('Images'))[1]:
-        path_images_dir = "Images/"+dir
+        path_images_dir = "Images"+os.sep+dir
 
         images_files = fetch_images(path_images_dir, path)
         print("For the folder  > "+path_images_dir)
@@ -151,7 +157,7 @@ if __name__ == "__main__":
         print("Matches found  > " + str(found_matches) +
               " | Time taken : " + str(time.time() - start_time))
 
-        with open("result.txt", 'a+') as f:
+        with open(result_filepath, 'a+') as f:
             for i in cotes_associated.items():
                 f.write(str(i[0])+":"+str(i[1])+"\n")
 
