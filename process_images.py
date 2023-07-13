@@ -18,19 +18,21 @@ main_dir = "test/oneFile/extract_image"
 def process_images(main_dir, ocr=True, crop=False):
     """
     For all images in a directory, apply segmentation, predictions and cropping
-    Produce 
 
     Parameters :
         main_dir :
             Directory in which images are located
         ocr :
             If False, skip predictions
-        crop : 
+        crop :
             If True, produce all cropped segmentations images in ./cropped/
 
     Return :
         None
     """
+    os.makedirs("tmp"+os.sep+"save"+os.sep+"segment", exist_ok=True)
+    os.makedirs("tmp"+os.sep+"save"+os.sep+"ocr_save", exist_ok=True)
+
     image_extension = (".jpg", ".png", ".svg", "jpeg")
     for (dirpath, subdirnames, filenames) in os.walk(main_dir):
         for filename in filenames:
@@ -42,12 +44,22 @@ def process_images(main_dir, ocr=True, crop=False):
             im = Image.open(filepath)
 
             # Segmentations and predictions
-            baseline_seg = blla.segment(im)  # Json
+            segment_save = "tmp"+os.sep+"save"+os.sep + \
+                "segment"+os.sep+filename+'_segment.pickle'
+            if not (os.path.exists(segment_save) and os.path.isfile(segment_save)):
+                baseline_seg = blla.segment(im)  # Json
+                with open(segment_save, 'wb') as file:
+                    pickle.dump(baseline_seg, file)
+            else:
+                # Load saved result to save time
+                with open(segment_save, 'rb') as file:
+                    baseline_seg = pickle.load(file)
+
             # optimisation : backup ?
 
-            os.makedirs("tmp"+os.sep+"ocr_save", exist_ok=True)
             predictions = ""
-            predict_backup = "tmp"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle'
+            predict_backup = "tmp"+os.sep+"save"+os.sep + \
+                "ocr_save"+os.sep+filename+'_ocr.pickle'
             if ocr:
                 if not (os.path.exists(predict_backup) and os.path.isfile(predict_backup)):
                     # https://kraken.re/main/api.html#recognition
@@ -95,7 +107,7 @@ def ocr_img(model, im, baseline_seg,  filename):
         print("Created "+ocr_dir+os.sep+filename[:-4]+'_ocr.txt')
 
     # Backup result to avoid time-consuming steps on relaunch
-    with open("tmp"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle', 'wb') as file:
+    with open("tmp"+os.sep+"save"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle', 'wb') as file:
         pickle.dump(predictions, file)
 
     return predictions

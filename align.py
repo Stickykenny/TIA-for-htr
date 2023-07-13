@@ -2,6 +2,7 @@ import numpy as np
 import os
 import pickle
 import cv2 as cv
+import re
 
 
 def levenshtein_dist(s1, s2):
@@ -50,20 +51,24 @@ def lis(arr):
     return max(lis), lis
 
 
-def txt_compare_open(filename):
+def txt_compare_open(image_filename):
     """
     Retrieve the ocr result and the transcription of the filename
 
     Parameters :
-        filename :
-            Name of the file to fetch the text
+        image_filename :
+            Name of the image file
 
     Return :
         A string of the transcription and a list of every pattern found by the ocr
     """
 
-    txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+filename[:-4]+".gt.txt"
-    txt_ocr_file = "tmp"+os.sep+"ocr_result"+os.sep+filename[:-4]+"_ocr.txt"
+    name_pattern = re.compile("\d+(?:-\d+)*")
+    cote = name_pattern.search(image_filename).group(0)
+
+    txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+cote+".gt.txt"
+    txt_ocr_file = "tmp"+os.sep+"ocr_result" + \
+        os.sep+image_filename[:-4]+"_ocr.txt"
 
     with open(txt_manual_file, newline='') as inputfile:
         txt_manual = inputfile.readlines()
@@ -97,7 +102,7 @@ def align_patterns(patterns, text, printing=False):
     score qui dépends aussi de la longueur de la chaine
     voir optimisation pour leivensthein distance
     meilleure structure de données
-    pour LIS : 
+    pour LIS :
     swap la position de deux éléments
     """
 
@@ -159,7 +164,7 @@ def align_cropped(lst, index_used, filepath):
         index_used :
             The list of index indicating which value is usable
         filepath :
-            Path 
+            path to the original image
 
     Return :
         A list of usable [pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
@@ -167,7 +172,8 @@ def align_cropped(lst, index_used, filepath):
 
     filename = filepath.split(os.sep)[-1]
     # Fetch position of segmented motif
-    predict_backup = "tmp"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle'
+    predict_backup = "tmp"+os.sep+"save"+os.sep + \
+        "ocr_save"+os.sep+filename+'_ocr.pickle'
     with open(predict_backup, 'rb') as file:
         predictions = pickle.load(file)
 
@@ -201,17 +207,26 @@ def align_cropped(lst, index_used, filepath):
             with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
                 f.write(lst[i][2])
             name_iterator += 1
-    print("Finished cropping "+str(name_iterator-1) + " times.")
+    print("Finished cropping "+str(name_iterator-1) + " times for "+filename)
+
+
+def batch_align_crop(main_dir, printing=False):
+    print("Started batch align text-images with segmented images")
+    for (dirpath, subdirnames, filenames) in os.walk(main_dir):
+        for filename in filenames:
+            filepath = dirpath+os.sep+filename
+
+            txt_manual, txt_ocr = txt_compare_open(filename)
+
+            associations, indexes = align_patterns(
+                txt_ocr, txt_manual, printing)
+            lst_alignments_usable, index_used = get_usable_alignments(
+                associations, indexes)
+            align_cropped(lst_alignments_usable, index_used, filepath)
 
 
 if __name__ == "__main__":
 
-    filepath = "test/here/ms1620-3-261.jpg"
-    filename = filepath.split(os.sep)[-1]
+    main_dir = "tmp/extract_image"
 
-    txt_manual, txt_ocr = txt_compare_open(filename)
-
-    associations, indexes = align_patterns(txt_ocr, txt_manual, printing=True)
-    lst_alignments_usable, index_used = get_usable_alignments(
-        associations, indexes)
-    align_cropped(lst_alignments_usable, index_used, filepath)
+    batch_align_crop(main_dir)

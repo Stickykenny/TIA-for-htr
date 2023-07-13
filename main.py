@@ -1,6 +1,8 @@
 import retrieve_match
 import utils_extract
 import pdf_text_extract
+import process_images
+import align
 import os
 from time import time
 from ast import literal_eval as ast_literal_eval
@@ -76,7 +78,6 @@ if __name__ == "__main__":
     os.makedirs(images_extract_dir, exist_ok=True)
     os.makedirs(pdf_extract_dir, exist_ok=True)
     os.makedirs(txt_extract_dir, exist_ok=True)
-
     os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
 
     # Retrieve csv data
@@ -86,25 +87,11 @@ if __name__ == "__main__":
     # ---------------
 
     cotes_associated = {}
-    """
-    # Old backup system
-    if os.path.exists("tmp"+os.sep+"result_images_link_backup.txt"):
-
-        with open("tmp"+os.sep+"result_images_link_backup.txt") as f:
-            for line in f:
-                (key, lst) = line.split(":")
-                cotes_associated[key] = ast_literal_eval(lst)
-    else :
-        # Produce in result.txt the association cote:[list_of_images]
-        # This one process may take time
-
-        cotes_associated = retriever(cotes, image_dir, result_filepath)
-    """
     if (os.path.exists(result_filepath) and os.path.isfile(result_filepath)):
         # Load saved result to save time
         with open(result_filepath, 'rb') as file:
             cotes_associated = pickle.load(file)
-        print("\tLoaded matches from last result from "+result_filepath)
+        print("\tLoaded matches from previous result from "+result_filepath)
     else:
         # This one process may take time
         cotes_associated = retriever(cotes, image_dir, result_filepath)
@@ -113,7 +100,7 @@ if __name__ == "__main__":
 
     # Copy images associated to images_extract_dir
     letters_fetched = utils_extract.get_letter_with_n_image(
-        images_links_path, 1)
+        images_links_path, 4)
     utils_extract.batch_extract_copy(
         letters_fetched, output_dir=images_extract_dir)
 
@@ -127,7 +114,7 @@ if __name__ == "__main__":
         links, output_dir="tmp/extract_pdf", name_associated=cotes_associated)
 
     """
-
+    print("Retrieving pdfs' content")
     pdfs_matched_repo = sorted(list(utils_extract.extract_column_from_csv(csv_source, c1=4, c2=9,
                                                                           list_to_compare=list(letters_fetched.keys())).items()), key=lambda x: x[0])
 
@@ -143,3 +130,9 @@ if __name__ == "__main__":
     # Retrieve text from pdf
     pdf_text_extract.retrieve_pdfs_text(
         pdf_extract_dir, output_folder=txt_extract_dir, regroup=False)
+
+    # Process images (segment, predict, crop)
+    process_images.process_images(images_extract_dir, ocr=True, crop=False)
+
+    # Alignment text-image of cropped part of an image
+    align.batch_align_crop(images_extract_dir)
