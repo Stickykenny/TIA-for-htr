@@ -5,7 +5,9 @@ import cv2 as cv
 
 
 def levenshtein_dist(s1, s2):
+    """
     # https://fr.wikipedia.org/wiki/Distance_de_Levenshtein
+    """
     m, n = len(s1)+1, len(s2)+1
 
     d = [[0]*(n) for i in range(m)]
@@ -44,11 +46,21 @@ def lis(arr):
             if arr[i] > arr[j] and lis[i] < lis[j] + 1:
                 lis[i] = lis[j]+1
 
-    print(lis)
+    # print(lis)
     return max(lis), lis
 
 
 def txt_compare_open(filename):
+    """
+    Retrieve the ocr result and the transcription of the filename
+
+    Parameters :
+        filename :
+            Name of the file to fetch the text
+
+    Return :
+        A string of the transcription and a list of every pattern found by the ocr
+    """
 
     txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+filename[:-4]+".gt.txt"
     txt_ocr_file = "tmp"+os.sep+"ocr_result"+os.sep+filename[:-4]+"_ocr.txt"
@@ -67,6 +79,20 @@ def txt_compare_open(filename):
 
 def align_patterns(patterns, text, printing=False):
     """
+    Find the best alignment for each pattern
+
+    Parameters :
+        pattern :
+            List of all pattern to test
+        text :
+            Text in which the pattern are located
+        printing :
+            If True result will be printed on terminal
+
+    Return :
+        A list of [pattern, distance_score, text_matched] and his list of index indicating where these match are in the text
+    """
+    """
     Amélioration possible :
     score qui dépends aussi de la longueur de la chaine
     voir optimisation pour leivensthein distance
@@ -76,7 +102,7 @@ def align_patterns(patterns, text, printing=False):
     """
 
     indexes = []
-    associations = []  # [ [ pattern, text] , [ ... ] , ... ]
+    associations = []  # [ [ pattern, distance_score, text] , [ ... ] , ... ]
     for pattern in patterns:
         scores = []
         for i in range(len(text)-len(pattern)):
@@ -93,6 +119,19 @@ def align_patterns(patterns, text, printing=False):
 
 
 def get_usable_alignments(associations, indexes):
+    """
+    Use LIS (Longuest Increasing Sequence) to remove alignments that are likely wrong
+
+    Parameters :
+        associations :
+            A list of [pattern, distance_score, text_matched]
+        indexes :
+            The list of index indicating where these match are in the text
+
+    Return :
+        A list of usable [pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
+    """
+
     itr, lis_result = lis(indexes)
     lst = list()
     index_used = []
@@ -106,22 +145,39 @@ def get_usable_alignments(associations, indexes):
 
     lst = list(reversed(lst))
     index_used = list(reversed(index_used))
-    print(lst)
+    # print(lst)
     return lst, index_used
 
 
-def align_cropped(lst, index_used, filename):
+def align_cropped(lst, index_used, filepath):
+    """
+    For each alignment, create the pair text-image
+
+    Parameters :
+        lst :
+            A list of curated [pattern, distance_score, text_matched]
+        index_used :
+            The list of index indicating which value is usable
+        filepath :
+            Path 
+
+    Return :
+        A list of usable [pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
+    """
+
+    filename = filepath.split(os.sep)[-1]
+    # Fetch position of segmented motif
     predict_backup = "tmp"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle'
     with open(predict_backup, 'rb') as file:
         predictions = pickle.load(file)
 
-    filepath = "test/here/ms1620-3-261.jpg"
-    img = cv.imread(filepath, cv.IMREAD_COLOR)
-    filename = filepath.split(os.sep)[-1]
-    # Align text-image for crop
-    name_iterator = 0
     cropping_dir = "tmp"+os.sep+"cropped_match"+os.sep+filename
     os.makedirs(cropping_dir, exist_ok=True)
+
+    img = cv.imread(filepath, cv.IMREAD_COLOR)
+    # Align text-image for crop
+    name_iterator = 0
+
     for i in range(len(index_used)):
         if predictions[index_used[i]].prediction == lst[i][0]:  # Normally useless check
 
@@ -150,16 +206,12 @@ def align_cropped(lst, index_used, filename):
 
 if __name__ == "__main__":
 
-    string1 = "chiens"
-    string2 = "niche"
-
-    print(levenshtein_dist(string1, string2))
-
     filepath = "test/here/ms1620-3-261.jpg"
     filename = filepath.split(os.sep)[-1]
 
     txt_manual, txt_ocr = txt_compare_open(filename)
+
     associations, indexes = align_patterns(txt_ocr, txt_manual, printing=True)
     lst_alignments_usable, index_used = get_usable_alignments(
         associations, indexes)
-    align_cropped(lst_alignments_usable, index_used, filename)
+    align_cropped(lst_alignments_usable, index_used, filepath)

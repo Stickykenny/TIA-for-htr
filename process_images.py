@@ -15,11 +15,27 @@ main_dir = "test/oneFile/extract_image"
 # OCR all files inside
 
 
-def process_images(main_dir, ocr=False, crop=False):
+def process_images(main_dir, ocr=True, crop=False):
+    """
+    For all images in a directory, apply segmentation, predictions and cropping
+    Produce 
+
+    Parameters :
+        main_dir :
+            Directory in which images are located
+        ocr :
+            If False, skip predictions
+        crop : 
+            If True, produce all cropped segmentations images in ./cropped/
+
+    Return :
+        None
+    """
     image_extension = (".jpg", ".png", ".svg", "jpeg")
     for (dirpath, subdirnames, filenames) in os.walk(main_dir):
         for filename in filenames:
             if not filename.lower().endswith(image_extension):
+                # skip non-image file
                 continue
             filepath = dirpath+os.sep+filename
             print("Processing : "+filepath)
@@ -27,7 +43,7 @@ def process_images(main_dir, ocr=False, crop=False):
 
             # Segmentations and predictions
             baseline_seg = blla.segment(im)  # Json
-            # backup ?
+            # optimisation : backup ?
 
             os.makedirs("tmp"+os.sep+"ocr_save", exist_ok=True)
             predictions = ""
@@ -50,6 +66,22 @@ def process_images(main_dir, ocr=False, crop=False):
 
 
 def ocr_img(model, im, baseline_seg,  filename):
+    """
+    Return and save result of applying prediction on an image
+
+    Parameters :
+        model :
+            Model used for predicting
+        im :
+            Image PIL object
+        baseline_seg :
+            Segmentation data obtained from blla.segment(im)
+        filename :
+            Name of the image file
+
+    Return :
+        Prediction produce by kraken.rpred.rpred
+    """
     ocr_dir = 'tmp'+os.sep+'ocr_result'
     os.makedirs(ocr_dir, exist_ok=True)
 
@@ -68,10 +100,22 @@ def ocr_img(model, im, baseline_seg,  filename):
 
     return predictions
 
-# Cropping segmented text
-
 
 def cropping(json_data, filepath, predictions, crop=False):
+    """
+    Draw the segmented region on the image and if crop is True cropped image will be generated at ./cropped/
+
+    Parameters :
+        json_data :
+            Segmentation data obtained from blla.segment(im)
+        filepath :
+            The path of the original image
+        predictions :
+
+
+    Return :
+        A list of usable [pattern,text_matched] and his list of index indicating where these match are in the original list
+    """
 
     img = cv.imread(filepath, cv.IMREAD_COLOR)
     filename = filepath.split(os.sep)[-1]
@@ -126,7 +170,7 @@ def cropping(json_data, filepath, predictions, crop=False):
             """
 
             if predictions:
-                with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
+                with open(cropped_img_path[:-4]+'_ocr.txt', 'w') as f:
                     f.write(predictions[name_iterator-1].prediction+"\n")
                     # print(predictions[name_iterator-1])
             # print("DID >"+cropped_img_path)
@@ -139,4 +183,4 @@ if __name__ == "__main__":
 
     main_dir = 'test/here'
 
-    process_images(main_dir, ocr=True, crop=True)
+    process_images(main_dir, ocr=True, crop=False)
