@@ -1,5 +1,7 @@
 import os
 import fitz  # import PyMuPdf better than PyPDF due to spaces appearing in words
+import logging
+logger = logging.getLogger("align_logger")
 
 
 def extract_pdf_text(path: str) -> str:
@@ -10,7 +12,7 @@ def extract_pdf_text(path: str) -> str:
         path : 
             Path of the pdf file
 
-    Return :
+    Returns :
         Text extracted from the pdf
     """
     if path.split(".")[-1] != "pdf":
@@ -45,7 +47,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
             Directory where files are saved
             (default = "text_extracted" =
 
-    Return :
+    Returns :
         None
     """
 
@@ -61,7 +63,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
                     break
                 new_file.write(extract_pdf_text(path_pdfs_dir+os.sep+file))
                 new_file.write(pages_separator)  # Separation between each file
-        print("Check "+os.getcwd()+os.sep+output_file)
+        logger.info("Check "+os.getcwd()+os.sep+output_file)
 
     else:
         # Create a txt for each pdf
@@ -73,7 +75,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
             new_filename = file[:-3]+"gt.txt"
             with open(output_folder+os.sep+new_filename, 'w') as new_file:
                 new_file.write(extract_pdf_text(path_pdfs_dir+os.sep+file))
-        print("Check "+os.getcwd()+os.sep+output_folder+os.sep)
+        logger.info("Check "+os.getcwd()+os.sep+output_folder+os.sep)
 
 
 if __name__ == "__main__":

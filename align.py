@@ -1,13 +1,29 @@
+"""
+align.py: Contains functions for alignment
+"""
+
 import numpy as np
 import os
 import pickle
 import cv2 as cv
 import re
+import logging
+logger = logging.getLogger("align_logger")
 
 
-def levenshtein_dist(s1, s2):
+def levenshtein_dist(s1: str, s2: str):
     """
-    # https://fr.wikipedia.org/wiki/Distance_de_Levenshtein
+    Compute and return the Levenshtein Distance.
+    Algorithm from : https://fr.wikipedia.org/wiki/Distance_de_Levenshtein
+
+    Parameters :
+        s1 :
+            String 2
+        s2 : 
+            String 2
+
+    Returns :
+        The Levenshtein distance of s1 and s2
     """
     m, n = len(s1)+1, len(s2)+1
 
@@ -34,12 +50,18 @@ def levenshtein_dist(s1, s2):
     return d[m-1][n-1]
 
 
-def lis(arr):
+def lis(arr: list):
     """
     Longuest increasing sequence, dynamic programming
+
+    Parameters :
+        arr :
+            The array
+
+    Returns :
+        The LIS value and his matrix
     """
     n = len(arr)
-
     lis = [1]*n
 
     for i in range(1, n):
@@ -47,7 +69,6 @@ def lis(arr):
             if arr[i] > arr[j] and lis[i] < lis[j] + 1:
                 lis[i] = lis[j]+1
 
-    # print(lis)
     return max(lis), lis
 
 
@@ -55,11 +76,11 @@ def txt_compare_open(image_filename):
     """
     Retrieve the ocr result and the transcription of the filename
 
-    Parameters :
-        image_filename :
+    Parameters:
+        image_filename:
             Name of the image file
 
-    Return :
+    Returns:
         A string of the transcription and a list of every pattern found by the ocr
     """
 
@@ -82,61 +103,59 @@ def txt_compare_open(image_filename):
     return txt_manual, txt_ocr
 
 
-def align_patterns(patterns, text, printing=False):
+def align_patterns(patterns: str, text: str, printing=False):
     """
     Find the best alignment for each pattern
 
-    Parameters :
-        pattern :
+    Parameters:
+        pattern:
             List of all pattern to test
-        text :
+        text:
             Text in which the pattern are located
-        printing :
+        printing:
             If True result will be printed on terminal
 
-    Return :
-        A list of [pattern, distance_score, text_matched] and his list of index indicating where these match are in the text
-    """
-    """
-    Amélioration possible :
-    score qui dépends aussi de la longueur de la chaine
-    voir optimisation pour leivensthein distance
-    meilleure structure de données
-    pour LIS :
-    swap la position de deux éléments
+    Returns:
+        A list of [pattern, pattern_index, text_matched, distance score] and his list of index indicating where these match are in the text
     """
 
     indexes = []
-    associations = []  # [ [ pattern, distance_score, text] , [ ... ] , ... ]
+    # associations = [ [pattern, pattern_index, text_matched, distance score]  , [ ... ] , ... ]
+    associations = []
+    pattern_index = 0
     for pattern in patterns:
         scores = []
         for i in range(len(text)-len(pattern)):
             scores.append(levenshtein_dist(pattern, text[i:i+len(pattern)]))
         index = np.argmin(scores)
-        indexes.append(index)
-        associations.append(
-            [pattern, scores[index], str(text[index:index+len(pattern)])])
-        if printing:
-            print("For : "+str(pattern)+" | >> dist score : " +
-                  str(scores[index]) + "\t\t\t at index : "+str(index))
-            print("\t "+str(text[index:index+len(pattern)]))
+        if scores[index] < len(pattern)//1.5:
+            associations.append(
+                [pattern, pattern_index, str(text[index:index+len(pattern)]), scores[index]])
+            indexes.append(index)
+
+            if printing:
+                logger.debug("For : "+str(pattern)+" | >> dist score : " +
+                             str(scores[index]) + "\t\t\t at index : "+str(index))
+                logger.debug("\t "+str(text[index:index+len(pattern)]))
+        pattern_index += 1
     return associations, indexes
 
 
 def get_usable_alignments(associations, indexes):
     """
-    Use LIS (Longuest Increasing Sequence) to remove alignments that are likely wrong
+    Use LIS(Longuest Increasing Sequence) to remove alignments that are likely wrong
 
-    Parameters :
-        associations :
-            A list of [pattern, distance_score, text_matched]
-        indexes :
+    Parameters:
+        associations:
+            A list of[pattern, distance_score, text_matched]
+        indexes:
             The list of index indicating where these match are in the text
 
-    Return :
-        A list of usable [pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
+    Returns:
+        A list of usable[pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
     """
-
+    # TODO
+    return associations, indexes
     itr, lis_result = lis(indexes)
     lst = list()
     index_used = []
@@ -150,7 +169,6 @@ def get_usable_alignments(associations, indexes):
 
     lst = list(reversed(lst))
     index_used = list(reversed(index_used))
-    # print(lst)
     return lst, index_used
 
 
@@ -158,18 +176,17 @@ def align_cropped(lst, index_used, filepath):
     """
     For each alignment, create the pair text-image
 
-    Parameters :
-        lst :
-            A list of curated [pattern, distance_score, text_matched]
-        index_used :
+    Parameters:
+        lst:
+            A list of curated[pattern, distance_score, text_matched]
+        index_used:
             The list of index indicating which value is usable
-        filepath :
+        filepath:
             path to the original image
 
-    Return :
-        A list of usable [pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
+    Returns:
+        A list of usable[pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
     """
-
     filename = filepath.split(os.sep)[-1]
     # Fetch position of segmented motif
     predict_backup = "tmp"+os.sep+"save"+os.sep + \
@@ -183,15 +200,14 @@ def align_cropped(lst, index_used, filepath):
     img = cv.imread(filepath, cv.IMREAD_COLOR)
     # Align text-image for crop
     name_iterator = 0
-
-    for i in range(len(index_used)):
-        if predictions[index_used[i]].prediction == lst[i][0]:  # Normally useless check
+    for i in range(len(lst)):
+        if predictions[lst[i][1]].prediction == lst[i][2]:  # Normally useless check
 
             # Crop the image
-            boundaries = predictions[index_used[i]].line
+            boundaries = predictions[lst[i][1]].line
             x_min = x_max = boundaries[0][0]
             y_min = y_max = boundaries[0][1]
-            for j in range(1, len(predictions[index_used[i]].line)):
+            for j in range(1, len(boundaries)):
                 x = boundaries[j][0]
                 y = boundaries[j][1]
                 x_min = (x if x < x_min else x_min)
@@ -207,15 +223,17 @@ def align_cropped(lst, index_used, filepath):
             with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
                 f.write(lst[i][2])
             name_iterator += 1
-    print("Finished cropping "+str(name_iterator-1) + " times for "+filename)
+    logger.debug("Finished cropping "+str(name_iterator+1) +
+                 " times for "+filename)
 
 
 def batch_align_crop(main_dir, printing=False):
-    print("Started batch align text-images with segmented images")
+    logger.info("Started batch align text-images with segmented images")
     for (dirpath, subdirnames, filenames) in os.walk(main_dir):
         for filename in filenames:
             filepath = dirpath+os.sep+filename
 
+            logger.info("Align " + filepath)
             txt_manual, txt_ocr = txt_compare_open(filename)
 
             associations, indexes = align_patterns(
@@ -223,6 +241,7 @@ def batch_align_crop(main_dir, printing=False):
             lst_alignments_usable, index_used = get_usable_alignments(
                 associations, indexes)
             align_cropped(lst_alignments_usable, index_used, filepath)
+            return
 
 
 if __name__ == "__main__":

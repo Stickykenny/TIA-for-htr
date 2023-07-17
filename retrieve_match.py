@@ -3,6 +3,8 @@ import re
 import time
 from utils_extract import get_column_values
 from hashlib import sha256
+import logging
+logger = logging.getLogger(__name__)
 
 image_extension = (".jpg", ".png", ".svg", "jpeg")
 
@@ -19,7 +21,7 @@ def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str
         recursive :
             If True, the search will also go into subdirectory
 
-    Return :
+    Returns :
         List of all images fetched in the given directory
     """
     images_files = []
@@ -32,10 +34,12 @@ def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str
                 [f for f in filenames if f.lower().endswith(image_extension)])
         if not recursive:
             break
+    logger.debug("Found "+str(len(images_files))+" images inside " +
+                 directory + " recurssively" if recursive else "without recursion")
     return images_files
 
 
-def indexing_autographes(autographes: list[str]):
+def indexing_autographes(autographes: list[str]) -> dict[str, str]:
     """
     Retrieve into a dictionnary the association cote->autographe from a list of autographes
     This function is highly fitted for naming convention of "MsXXX-X.. .jpg"
@@ -44,7 +48,7 @@ def indexing_autographes(autographes: list[str]):
         autographes :
             List of autographes
 
-    Return :
+    Returns :
         Dictionnary associating cote->autographe
     """
     cotes = {}
@@ -73,7 +77,7 @@ def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
         images_files :
             List containing paths to images
 
-    Return :
+    Returns :
         Number of matches found, Dictionnary of available cotes with images
     """
     count = 0

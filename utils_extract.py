@@ -6,11 +6,22 @@ import os
 from shutil import copy
 import csv
 from gdown import download as gdown_download
+import logging
+logger = logging.getLogger("align_logger")
 
 
 def get_column_values(csv_source: str, column: int = 9) -> list[str]:
-    # TODO replace with extract_column_from_csv
-    """Retrieve into a list all values from the n column
+    """
+    Retrieve into a list all values from the n column
+
+    Parameters :
+        csv_source :
+            The path of the csv file
+        column : 
+            Index of the column to be extracted
+
+    Returns :
+        List of all values in selected column in the csv file
     """
     with open(csv_source, newline='') as inputfile:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
@@ -27,7 +38,7 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict:
         n : 
             The sound the animal makes
 
-    Return :
+    Returns :
         The dictionnary of every letter having only n images
     """
 
@@ -44,15 +55,27 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict:
     return letters_fetched
 
 
-def __copy_file(filename, dir_target, file_rename: str = ""):
+def __copy_file(filepath: str, dir_target: str, file_rename: str = "") -> None:
     """
     Function for extracting a file, do nothing if the file doesn't exist
     Doesn't check if directory exist !
+
+    Parameters :
+        filename :
+            The path of the file
+        dir_target : 
+            The path of the output directory
+        file_rename :
+            The new name for the copied file
+
+    Returns :
+        None
     """
-    if os.path.exists(filename):
-        copy(filename, dir_target)
+
+    if os.path.exists(filepath):
+        copy(filepath, dir_target)
         if file_rename != "":
-            os.rename(dir_target+"os.sep"+filename,
+            os.rename(dir_target+"os.sep"+filepath,
                       dir_target+"os.sep"+file_rename)
 
 
@@ -66,7 +89,7 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
         output_dir :
             Directory where file will be copied to
 
-    Return :
+    Returns :
         None
     """
     os.makedirs(output_dir, exist_ok=True)
@@ -74,6 +97,8 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
         # print(item)
         for image in [img for img in item[1]]:
             __copy_file(image, output_dir)
+    logger.debug(
+        "Extracted/copy all target images from dictionnary into "+output_dir)
 
 
 def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_compare: list[str] = []) -> dict:
@@ -91,7 +116,7 @@ def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_comp
         list_to_compare :
             List of IDs to compare with column c2
 
-    Return :
+    Returns :
         Dictionnary of ID:value_c1 where c2 value is in list_to_compare
     """
     list_to_compare = sorted(list_to_compare)
@@ -102,6 +127,7 @@ def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_comp
                 inputfile) if row[c2] != ""], key=lambda x: x[1])
             i = j = 0
             size_csv, size_lst = len(csv_data), len(list_to_compare)
+            # Incremental way of loop through
             while i < size_csv and j < size_lst:
                 if csv_data[i][1] == list_to_compare[j]:
                     result[list_to_compare[j]] = csv_data[i][0]
