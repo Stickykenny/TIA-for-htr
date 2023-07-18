@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger("align_logger")
 
 
-def retriever(cotes, image_dir, output):
+def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
 
     path = True  # If True, result will show images relative path instead of just the filename
 
@@ -65,8 +65,9 @@ def retriever(cotes, image_dir, output):
     return cotes_associated
 
 
-def processing_pdfs(pdf_source, csv_source, letters_fetched, pdf_extract_dir="tmp"+os.sep+"extract_pdf"):
+def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf") -> None:
 
+    os.makedirs(pdf_extract_dir, exist_ok=True)
     pdfs_matched_repo = sorted(list(utils_extract.extract_column_from_csv(csv_source, c1=4, c2=9,
                                                                           list_to_compare=list(letters_fetched.keys())).items()), key=lambda x: x[0])
     print(pdfs_matched_repo)
@@ -118,7 +119,6 @@ if __name__ == "__main__":
         str(hash_filename)+".pickle"
 
     os.makedirs(images_extract_dir, exist_ok=True)
-    os.makedirs(pdf_extract_dir, exist_ok=True)
     os.makedirs(txt_extract_dir, exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
 
@@ -139,10 +139,8 @@ if __name__ == "__main__":
         # This one process may take time
         cotes_associated = retriever(cotes, image_dir, result_filepath)
 
-    # ---------------
-
     # Copy images associated to images_extract_dir
-    nb_image_check = 6
+    nb_image_check = 7
     if nb_image_check <= 0:
         logger.info("Fetching all matches of letter with images")
     else:
@@ -150,6 +148,11 @@ if __name__ == "__main__":
                     str(nb_image_check) + " image(s)")
     letters_fetched = utils_extract.get_letter_with_n_image(
         images_links_path, nb_image_check)
+
+    if len(letters_fetched) == 0:
+        logger.info("No letter found, exiting program")
+        sys.exit()
+
     utils_extract.batch_extract_copy(
         letters_fetched, output_dir=images_extract_dir)
 

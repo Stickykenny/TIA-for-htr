@@ -55,7 +55,7 @@ def indexing_autographes(autographes: list[str]) -> dict[str, str]:
     for letter_name in autographes:
         # print(letter_name, end=" | ")
         cote = ""
-        for numbers in re.findall(r"(\d+(?:-\d+)*(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", letter_name):
+        for numbers in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", letter_name):
             # Concatenate every cotes from the same letter with "+" sign
             if cote != "":
                 cote += "+"
@@ -106,7 +106,7 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
             # Normalize cote from the file to fit the csv
             filename = files[i].lower()
             # print(filename)
-            for cote_in_name in re.findall(r"(\d+(?:-\d+)*(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
+            for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
                 # print(filename+">> "+cote_in_name + " ==? "+ cote )
                 if cote == cote_in_name.replace(" ", ""):
 
@@ -115,6 +115,7 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
                     cotes_availables[cote].append(files[i])
                     count += 1
                     # Optimize by removing image already associated
+                    logger.debug("Matched "+count + " image(s)")
                     del files[i]
                     current_size -= 1
                     return cotes, count, cotes_availables, files, current_size, 0
@@ -127,47 +128,4 @@ if __name__ == "__main__":
     # Dictionnaire
     # cotes : [ code : nom complet de l'autographe ]
     # cotes_available : [ code : [ liste des noms de fichiers images ]]
-
-    path = False  # If True, result will show images relative path instead of just the filename
-
-    # Retrieve csv data
-    csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
-    autographes = get_column_values(csv_source, column=9)
-
-    # Statistics
-    total_found = 0
-    letters_associated = 0
-
-    # Filename of the save will be based on a hash made on result of os.walk('Images')
-    hash_filename = sha256(
-        str([i for i in os.walk("Images")]).encode('utf-8')).hexdigest()
-    result_filepath = "tmp"+os.sep+"save" + \
-        os.sep+"match" + str(hash_filename)+".txt"
-    # Reset result output
-    if os.path.exists(result_filepath):
-        os.remove(result_filepath)
-
-    for dir in next(os.walk('Images'))[1]:
-        path_images_dir = "Images"+os.sep+dir
-
-        images_files = fetch_images(path_images_dir, path)
-        print("For the folder  > "+path_images_dir)
-        print("Image count > " + str(len(images_files)) + "| Timer starting now ")
-        start_time = time.time()
-
-        cotes = indexing_autographes(autographes)
-        found_matches, cotes_associated = get_matches(cotes, images_files)
-
-        print("Matches found  > " + str(found_matches) +
-              " | Time taken : " + str(time.time() - start_time))
-
-        with open(result_filepath, 'a+') as f:
-            for i in cotes_associated.items():
-                f.write(str(i[0])+":"+str(i[1])+"\n")
-
-        # Statistics
-        total_found += found_matches
-        letters_associated += len(cotes_associated)
-        print("--------------------")
-    print("Found in total "+str(total_found)+" matches of images with letter\nTotalling " +
-          str(letters_associated)+" letters associated")
+    pass

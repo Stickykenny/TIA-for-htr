@@ -27,7 +27,7 @@ def get_column_values(csv_source: str, column: int = 9) -> list[str]:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 
-def get_letter_with_n_image(file: str, n: int = -1) -> dict:
+def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
     """
     Retrieve all letters' cote having only n image
     if n = -1, this function will simply convert the file into a python dictionnary
@@ -39,10 +39,11 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict:
             The sound the animal makes
 
     Returns :
-        The dictionnary of every letter having only n images
+        The dictionnary {cote->[images]} of every letter having n images
     """
 
     letters_fetched = dict()
+    count = 0
     with open(file, 'r') as f:
         for line in f.readlines():
             line = line.split(":")
@@ -52,6 +53,9 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict:
                     continue
             # print(line[0]+","+str(retrieved_list))
             letters_fetched[line[0]] = retrieved_list
+            count += 1
+    logger.info("Fetched a total of "+str(count) +
+                " pairs of letter-image\nWith a total of "+str(len(letters_fetched))+" uniques letters")
     return letters_fetched
 
 
@@ -101,7 +105,7 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
         "Extracted/copy all target images from dictionnary into "+output_dir)
 
 
-def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_compare: list[str] = []) -> dict:
+def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_compare: list[str] = []) -> dict[str:str]:
     """
     Extract value at column c1 from a csv
     where value in column c2 is present in list_to_compare

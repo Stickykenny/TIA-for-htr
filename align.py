@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger("align_logger")
 
 
-def levenshtein_dist(s1: str, s2: str):
+def levenshtein_dist(s1: str, s2: str) -> float:
     """
     Compute and return the Levenshtein Distance.
     Algorithm from : https://fr.wikipedia.org/wiki/Distance_de_Levenshtein
@@ -50,7 +50,7 @@ def levenshtein_dist(s1: str, s2: str):
     return d[m-1][n-1]
 
 
-def lis(arr: list):
+def lis(arr: list) -> tuple[int, list[int]]:
     """
     Longuest increasing sequence, dynamic programming
 
@@ -72,7 +72,7 @@ def lis(arr: list):
     return max(lis), lis
 
 
-def txt_compare_open(image_filename):
+def txt_compare_open(image_filename: str) -> tuple[str, list[str]]:
     """
     Retrieve the ocr result and the transcription of the filename
 
@@ -103,7 +103,7 @@ def txt_compare_open(image_filename):
     return txt_manual, txt_ocr
 
 
-def align_patterns(patterns: str, text: str, printing=False):
+def align_patterns(patterns: str, text: str, printing: bool = False) -> tuple[dict, list]:
     """
     Find the best alignment for each pattern
 
@@ -157,7 +157,7 @@ def align_patterns(patterns: str, text: str, printing=False):
     return associations, indexes
 
 
-def get_usable_alignments(associations, indexes):
+def get_usable_alignments(associations: dict[str, int, str, int], indexes: list[int]) -> tuple[dict, list]:
     """
     Use LIS(Longuest Increasing Sequence) to remove alignments that are likely wrong
 
@@ -188,7 +188,7 @@ def get_usable_alignments(associations, indexes):
     return lst, index_used
 
 
-def align_cropped(lst, index_used, filepath):
+def align_cropped(lst: list[str, int, str, int], filepath: str) -> None:
     """
     For each alignment, create the pair text-image
 
@@ -240,18 +240,20 @@ def align_cropped(lst, index_used, filepath):
                  " times for "+filename)
 
 
-def batch_align_crop(image_dir, printing=False, specific_input=dict()):
+def batch_align_crop(image_dir, printing=False, specific_input=None) -> None:
     logger.info("Started batch align text-images with segmented images")
-    if not specific_input:
+    if specific_input == None:
         # Process the entire directory
         # TODO  proof when multiple images per cotes
         for (dirpath, subdirnames, filenames) in os.walk(image_dir):
             for filename in filenames:
                 filepath = dirpath+os.sep+filename
 
+                try:
+                    txt_manual, txt_ocr = txt_compare_open(filename)
+                except:
+                    continue
                 logger.info("Align " + filepath)
-                txt_manual, txt_ocr = txt_compare_open(filename)
-
                 associations, indexes = align_patterns(
                     txt_ocr, txt_manual, printing)
                 lst_alignments_usable, index_used = get_usable_alignments(

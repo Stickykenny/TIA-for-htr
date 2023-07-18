@@ -3,9 +3,9 @@ from kraken import rpred
 from kraken.lib import models
 from PIL import Image
 import cv2 as cv
-import numpy as np
 import os
 import pickle
+import re
 import logging
 logger = logging.getLogger("align_logger")
 
@@ -13,7 +13,7 @@ model_path = 'KrakenModel/HTR-United-Manu_McFrench.mlmodel'
 model = models.load_any(model_path)
 
 
-def process_images(main_dir, ocr=True, crop=False):
+def process_images(main_dir: str, ocr: bool = True, crop: bool = False, specific_input: dict = dict()) -> None:
     """
     For all images in a directory, apply segmentation, predictions and cropping
 
@@ -24,6 +24,8 @@ def process_images(main_dir, ocr=True, crop=False):
             If False, skip predictions
         crop :
             If True, produce all cropped segmentations images in ./cropped/
+        specific_input : 
+            Dictionnary {cote:[images]} indicating which images to process 
 
     Returns :
         None
@@ -38,46 +40,56 @@ def process_images(main_dir, ocr=True, crop=False):
                 # skip non-image file
                 logger.debug("skipped this non-image file : "+filename)
                 continue
-            filepath = dirpath+os.sep+filename
-            logger.info("Processing : "+filepath)
-            im = Image.open(filepath)
+            for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
+                file_cote = cote_in_name.replace(" ", "")
+                # print(file_cote)
+                if not specific_input or file_cote not in specific_input.keys():
+                    # logger.debug("Skipped "+filename +
+                    #             " in directory, because not in letter fetched")
+                    continue
+                filepath = dirpath+os.sep+filename
+                logger.info("Processing : "+filepath)
+                im = Image.open(filepath)
 
-            # Segmentations and predictions
-            logger.debug("Starting segmentation")
-            segment_save = "tmp"+os.sep+"save"+os.sep + \
-                "segment"+os.sep+filename+'_segment.pickle'
-            if not (os.path.exists(segment_save) and os.path.isfile(segment_save)):
-                baseline_seg = blla.segment(im)  # Json
-                with open(segment_save, 'wb') as file:
-                    pickle.dump(baseline_seg, file)
-            else:
-                # Load saved result to save time
-                with open(segment_save, 'rb') as file:
-                    baseline_seg = pickle.load(file)
-
-            logger.debug("Starting prediction")
-            predictions = ""
-            predict_backup = "tmp"+os.sep+"save"+os.sep + \
-                "ocr_save"+os.sep+filename+'_ocr.pickle'
-            if ocr:
-                if not (os.path.exists(predict_backup) and os.path.isfile(predict_backup)):
-                    # https://kraken.re/main/api.html#recognition
-                    predictions = ocr_img(model, im, baseline_seg, filename)
+                # Segmentations and predictions
+                logger.debug("Starting segmentation")
+                segment_save = "tmp"+os.sep+"save"+os.sep + \
+                    "segment"+os.sep+filename+'_segment.pickle'
+                if not (os.path.exists(segment_save) and os.path.isfile(segment_save)):
+                    baseline_seg = blla.segment(im)
+                    with open(segment_save, 'wb') as file:
+                        pickle.dump(baseline_seg, file)
                 else:
                     # Load saved result to save time
-                    with open(predict_backup, 'rb') as file:
-                        predictions = pickle.load(file)
                     logger.debug(
-                        "\tLoaded ocr from previously calculated result")
+                        "Loading previous segmentation result "+segment_save)
+                    with open(segment_save, 'rb') as file:
+                        baseline_seg = pickle.load(file)
+                print(type(baseline_seg))
+                logger.debug("Starting prediction")
+                predictions = ""
+                predict_backup = "tmp"+os.sep+"save"+os.sep + \
+                    "ocr_save"+os.sep+filename+'_ocr.pickle'
+                if ocr:
+                    if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
+                        # Load saved result to save time
+                        logger.debug(
+                            "Loading previous ocr result : "+predict_backup)
+                        with open(predict_backup, 'rb') as file:
+                            predictions = pickle.load(file)
+                    else:
+                        # https://kraken.re/main/api.html#recognition
+                        predictions = ocr_img(
+                            model, im, baseline_seg, filename)
 
-            # Cropping segmented text
-            cropping(baseline_seg, filepath, predictions, crop)
+               # Cropping segmented text
+                cropping(baseline_seg, filepath, predictions, crop)
 
-            im.close()
-            logger.debug("Done processing")
+                im.close()
+                logger.debug("Done processing")
 
 
-def ocr_img(model, im, baseline_seg,  filename):
+def ocr_img(model: models.TorchSeqRecognizer, im: Image, baseline_seg: dict,  filename: str) -> list[rpred.ocr_record]:
     """
     Return and save result of applying prediction on an image
 
@@ -103,7 +115,6 @@ def ocr_img(model, im, baseline_seg,  filename):
     ocr_filepath = ocr_dir+os.sep+filename[:-4]+'_ocr.txt'
     with open(ocr_filepath, 'w') as f:
         for record in predictions:
-            logger.debug("Wrote "+record.prediction + "into "+ocr_filepath)
             f.write(record.prediction+"\n")
         logger.info("Created "+ocr_filepath)
 
@@ -116,7 +127,7 @@ def ocr_img(model, im, baseline_seg,  filename):
     return predictions
 
 
-def cropping(json_data, filepath, predictions, crop=False):
+def cropping(json_data: str, filepath: str, predictions: str, crop=False) -> tuple[list[str, str], list[int]]:
     """
     Draw the segmented region on the image and if crop is True cropped image will be generated at ./cropped/
 
@@ -126,9 +137,9 @@ def cropping(json_data, filepath, predictions, crop=False):
         filepath :
             The path of the original image
         predictions :
+            Prediction produce by kraken.rpred.rpred
 
-
-    Return :
+    Returns :
         A list of usable [pattern,text_matched] and his list of index indicating where these match are in the original list
     """
 
