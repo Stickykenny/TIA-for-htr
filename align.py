@@ -7,6 +7,7 @@ import os
 import pickle
 import cv2 as cv
 import re
+from monitoring import timeit
 import logging
 logger = logging.getLogger("align_logger")
 
@@ -240,8 +241,10 @@ def align_cropped(lst: list[str, int, str, int], filepath: str) -> None:
                  " times for "+filename)
 
 
+@timeit
 def batch_align_crop(image_dir, printing=False, specific_input=None) -> None:
     logger.info("Started batch align text-images with segmented images")
+    count = 0
     if specific_input == None:
         # Process the entire directory
         # TODO  proof when multiple images per cotes
@@ -252,6 +255,7 @@ def batch_align_crop(image_dir, printing=False, specific_input=None) -> None:
                 try:
                     txt_manual, txt_ocr = txt_compare_open(filename)
                 except:
+                    logger.debug("Couldn't retrieve text for "+filename)
                     continue
                 logger.info("Align " + filepath)
                 associations, indexes = align_patterns(
@@ -259,11 +263,12 @@ def batch_align_crop(image_dir, printing=False, specific_input=None) -> None:
                 lst_alignments_usable, index_used = get_usable_alignments(
                     associations, indexes)
                 align_cropped(lst_alignments_usable, index_used, filepath)
+                count += 1
+                logger.debug("Cropped a total of "+str(count)+" images")
     else:
         # Process only specified images
         for cote in specific_input:
             for filepath in specific_input[cote]:
-                print(filepath)
                 filename = filepath.split(os.sep)[-1]
                 logger.info("Align " + filepath)
                 txt_manual, txt_ocr = txt_compare_open(filename)
@@ -271,7 +276,9 @@ def batch_align_crop(image_dir, printing=False, specific_input=None) -> None:
                     txt_ocr, txt_manual, printing)
                 lst_alignments_usable, index_used = get_usable_alignments(
                     associations, indexes)
-                align_cropped(lst_alignments_usable, index_used, filepath)
+                align_cropped(lst_alignments_usable, filepath)
+                count += 1
+                logger.debug("Cropped a total of "+str(count)+" images")
 
 
 if __name__ == "__main__":

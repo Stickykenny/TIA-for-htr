@@ -1,6 +1,11 @@
+"""
+pdf_text_extract.py: Contains functions for the processing of pdf files
+"""
+
 import os
 import fitz  # import PyMuPdf better than PyPDF due to spaces appearing in words
 import logging
+from monitoring import timeit
 logger = logging.getLogger("align_logger")
 
 
@@ -26,6 +31,7 @@ def extract_pdf_text(path: str) -> str:
         return text
 
 
+@timeit
 def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: str = "tmp_regroup.txt",
                        pages_separator: str = "\n"+">"*10+"\n", output_folder: str = "text_extracted") -> None:
     """

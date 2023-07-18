@@ -1,3 +1,7 @@
+"""
+process_image.py: Contains functions for processing images with kraken OCR
+"""
+
 from kraken import blla
 from kraken import rpred
 from kraken.lib import models
@@ -6,11 +10,28 @@ import cv2 as cv
 import os
 import pickle
 import re
+import ujson
 import logging
+from monitoring import timeit
 logger = logging.getLogger("align_logger")
 
 model_path = 'KrakenModel/HTR-United-Manu_McFrench.mlmodel'
 model = models.load_any(model_path)
+
+
+@timeit
+def kraken_segment(im: Image) -> dict:
+    """
+    Fodder function, to allow @timeit on kraken.blla.segment()
+
+    Parameters :
+        im :
+            PIL Image object
+
+    Returns :
+        Dictionnary produced by kraken.blla.segment()
+    """
+    return blla.segment(im)
 
 
 def process_images(main_dir: str, ocr: bool = True, crop: bool = False, specific_input: dict = dict()) -> None:
@@ -37,42 +58,44 @@ def process_images(main_dir: str, ocr: bool = True, crop: bool = False, specific
     for (dirpath, subdirnames, filenames) in os.walk(main_dir):
         for filename in filenames:
             if not filename.lower().endswith(image_extension):
-                # skip non-image file
+             # skip non-image file
                 logger.debug("skipped this non-image file : "+filename)
                 continue
             for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
                 file_cote = cote_in_name.replace(" ", "")
                 # print(file_cote)
                 if not specific_input or file_cote not in specific_input.keys():
-                    # logger.debug("Skipped "+filename +
-                    #             " in directory, because not in letter fetched")
+                 # logger.debug("Skipped "+filename +
+                 #             " in directory, because not in letter fetched")
                     continue
                 filepath = dirpath+os.sep+filename
                 logger.info("Processing : "+filepath)
                 im = Image.open(filepath)
 
-                # Segmentations and predictions
+                # Segmentation
                 logger.debug("Starting segmentation")
                 segment_save = "tmp"+os.sep+"save"+os.sep + \
-                    "segment"+os.sep+filename+'_segment.pickle'
+                    "segment"+os.sep+filename+'_segment.json'
                 if not (os.path.exists(segment_save) and os.path.isfile(segment_save)):
-                    baseline_seg = blla.segment(im)
-                    with open(segment_save, 'wb') as file:
-                        pickle.dump(baseline_seg, file)
+                    baseline_seg = kraken_segment(im)
+                    with open(segment_save, 'w') as file:
+                        ujson.dump(baseline_seg, file, indent=4)
                 else:
                     # Load saved result to save time
                     logger.debug(
                         "Loading previous segmentation result "+segment_save)
                     with open(segment_save, 'rb') as file:
-                        baseline_seg = pickle.load(file)
-                print(type(baseline_seg))
+                        baseline_seg = ujson.load(file)
+                return baseline_seg
+
+                # Prediction
                 logger.debug("Starting prediction")
                 predictions = ""
                 predict_backup = "tmp"+os.sep+"save"+os.sep + \
                     "ocr_save"+os.sep+filename+'_ocr.pickle'
                 if ocr:
                     if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
-                        # Load saved result to save time
+                     # Load saved result to save time
                         logger.debug(
                             "Loading previous ocr result : "+predict_backup)
                         with open(predict_backup, 'rb') as file:
@@ -89,6 +112,7 @@ def process_images(main_dir: str, ocr: bool = True, crop: bool = False, specific
                 logger.debug("Done processing")
 
 
+@timeit
 def ocr_img(model: models.TorchSeqRecognizer, im: Image, baseline_seg: dict,  filename: str) -> list[rpred.ocr_record]:
     """
     Return and save result of applying prediction on an image

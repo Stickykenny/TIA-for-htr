@@ -1,6 +1,7 @@
 """
 Extra Scripts and functions
 """
+from monitoring import timeit
 from ast import literal_eval
 import os
 from shutil import copy
@@ -27,6 +28,7 @@ def get_column_values(csv_source: str, column: int = 9) -> list[str]:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 
+@timeit
 def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
     """
     Retrieve all letters' cote having only n image
@@ -83,6 +85,7 @@ def __copy_file(filepath: str, dir_target: str, file_rename: str = "") -> None:
                       dir_target+"os.sep"+file_rename)
 
 
+@timeit
 def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
     """
     Extract all images from the target dictionnary to the output_dir

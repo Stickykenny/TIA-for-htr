@@ -1,3 +1,8 @@
+"""
+retrieve_match.py: Contains functions for the task of fetching the usable data
+"""
+
+from monitoring import timeit
 import os
 import re
 import time
@@ -9,6 +14,7 @@ logger = logging.getLogger(__name__)
 image_extension = (".jpg", ".png", ".svg", "jpeg")
 
 
+@timeit
 def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str]:
     """
     Retrieve every image file in the directory indicated
@@ -67,6 +73,7 @@ def indexing_autographes(autographes: list[str]) -> dict[str, str]:
     return cotes
 
 
+@timeit
 def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
     """
     Associate every cotes their images if it exists

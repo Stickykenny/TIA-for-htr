@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime
 import retrieve_match
 import utils_extract
 import pdf_text_extract
@@ -11,6 +10,7 @@ from ast import literal_eval as ast_literal_eval
 from shutil import copy as shutilcopy
 import pickle
 from hashlib import sha256
+import monitoring
 import logging
 logger = logging.getLogger("align_logger")
 
@@ -90,20 +90,7 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
 if __name__ == "__main__":
 
     # Loggers
-    os.makedirs("logs", exist_ok=True)
-    logger.setLevel(logging.DEBUG)
-    filename = "logs"+os.sep + datetime.now().strftime('logs_%Y_%m_%d_%H_%M.log')
-    file_handler = logging.FileHandler(filename)
-
-    # file_handler.setLevel(logging.DEBUG)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
+    logger = monitoring.setup_logger()
 
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     pdf_source = 'MDV-site-Xavier-Lang'
@@ -140,7 +127,7 @@ if __name__ == "__main__":
         cotes_associated = retriever(cotes, image_dir, result_filepath)
 
     # Copy images associated to images_extract_dir
-    nb_image_check = 7
+    nb_image_check = 9
     if nb_image_check <= 0:
         logger.info("Fetching all matches of letter with images")
     else:
