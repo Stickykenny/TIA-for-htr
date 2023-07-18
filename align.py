@@ -19,7 +19,7 @@ def levenshtein_dist(s1: str, s2: str):
     Parameters :
         s1 :
             String 2
-        s2 : 
+        s2 :
             String 2
 
     Returns :
@@ -116,7 +116,7 @@ def align_patterns(patterns: str, text: str, printing=False):
             If True result will be printed on terminal
 
     Returns:
-        A list of [pattern, pattern_index, text_matched, distance score] and his list of index indicating where these match are in the text
+        A list of [pattern, pattern_index, text_matched, distance_score] and his list of index indicating where these match are in the text
     """
 
     indexes = []
@@ -129,14 +129,30 @@ def align_patterns(patterns: str, text: str, printing=False):
             scores.append(levenshtein_dist(pattern, text[i:i+len(pattern)]))
         index = np.argmin(scores)
         if scores[index] < len(pattern)//1.5:
-            associations.append(
-                [pattern, pattern_index, str(text[index:index+len(pattern)]), scores[index]])
+
+            # Complete words
+            def complete_word(text, lower_bound, upper_bound):
+                character = text[lower_bound]
+                while not character == " ":
+                    lower_bound -= 1
+                    character = text[lower_bound]
+
+                character = text[upper_bound]
+                while not character == " ":
+                    upper_bound += 1
+                    character = text[upper_bound]
+
+                return text[lower_bound:upper_bound]
+            text_match = complete_word(text, index, index+len(pattern))
+
+            associations.append([
+                pattern, pattern_index, text_match, scores[index]])
             indexes.append(index)
 
             if printing:
                 logger.debug("For : "+str(pattern)+" | >> dist score : " +
                              str(scores[index]) + "\t\t\t at index : "+str(index))
-                logger.debug("\t "+str(text[index:index+len(pattern)]))
+                logger.debug("\t "+text_match)
         pattern_index += 1
     return associations, indexes
 
@@ -147,12 +163,12 @@ def get_usable_alignments(associations, indexes):
 
     Parameters:
         associations:
-            A list of[pattern, distance_score, text_matched]
+            A list of [pattern, pattern_index, text_matched, distance_score]
         indexes:
             The list of index indicating where these match are in the text
 
     Returns:
-        A list of usable[pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
+        A list of usable [pattern, pattern_index, text_matched, distance_score] and his list of index indicating where these match are in the original list
     """
     # TODO
     return associations, indexes
@@ -178,14 +194,12 @@ def align_cropped(lst, index_used, filepath):
 
     Parameters:
         lst:
-            A list of curated[pattern, distance_score, text_matched]
-        index_used:
-            The list of index indicating which value is usable
+            A list of curated [pattern, pattern_index, text_matched, distance_score]
         filepath:
             path to the original image
 
     Returns:
-        A list of usable[pattern, distance_score, text_matched] and his list of index indicating where these match are in the original list
+        A list of usable [pattern, pattern_index, text_matched, distance_score] and his list of index indicating where these match are in the original list
     """
     filename = filepath.split(os.sep)[-1]
     # Fetch position of segmented motif
@@ -200,48 +214,62 @@ def align_cropped(lst, index_used, filepath):
     img = cv.imread(filepath, cv.IMREAD_COLOR)
     # Align text-image for crop
     name_iterator = 0
+
     for i in range(len(lst)):
-        if predictions[lst[i][1]].prediction == lst[i][2]:  # Normally useless check
+        # Crop the image
+        boundaries = predictions[lst[i][1]].line
+        x_min = x_max = boundaries[0][0]
+        y_min = y_max = boundaries[0][1]
+        for j in range(1, len(boundaries)):
+            x = boundaries[j][0]
+            y = boundaries[j][1]
+            x_min = (x if x < x_min else x_min)
+            x_max = (x if x > x_max else x_max)
+            y_min = (y if y < y_min else y_min)
+            y_max = (y if y > y_max else y_max)
+        cropped = img[y_min:y_max, x_min:x_max]
+        cropped_img_path = cropping_dir+os.sep + \
+            filename[:-4]+"_"+str(name_iterator)+".jpg"
+        cv.imwrite(cropped_img_path, cropped)
 
-            # Crop the image
-            boundaries = predictions[lst[i][1]].line
-            x_min = x_max = boundaries[0][0]
-            y_min = y_max = boundaries[0][1]
-            for j in range(1, len(boundaries)):
-                x = boundaries[j][0]
-                y = boundaries[j][1]
-                x_min = (x if x < x_min else x_min)
-                x_max = (x if x > x_max else x_max)
-                y_min = (y if y < y_min else y_min)
-                y_max = (y if y > y_max else y_max)
-            cropped = img[y_min:y_max, x_min:x_max]
-            cropped_img_path = cropping_dir+os.sep + \
-                filename[:-4]+"_"+str(name_iterator)+".jpg"
-            cv.imwrite(cropped_img_path, cropped)
-
-            # Create txt file associated
-            with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
-                f.write(lst[i][2])
-            name_iterator += 1
-    logger.debug("Finished cropping "+str(name_iterator+1) +
+        # Create txt file associated
+        with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
+            f.write(lst[i][2])
+        name_iterator += 1
+    logger.debug("Finished cropping "+str(name_iterator) +
                  " times for "+filename)
 
 
-def batch_align_crop(main_dir, printing=False):
+def batch_align_crop(image_dir, printing=False, specific_input=dict()):
     logger.info("Started batch align text-images with segmented images")
-    for (dirpath, subdirnames, filenames) in os.walk(main_dir):
-        for filename in filenames:
-            filepath = dirpath+os.sep+filename
+    if not specific_input:
+        # Process the entire directory
+        # TODO  proof when multiple images per cotes
+        for (dirpath, subdirnames, filenames) in os.walk(image_dir):
+            for filename in filenames:
+                filepath = dirpath+os.sep+filename
 
-            logger.info("Align " + filepath)
-            txt_manual, txt_ocr = txt_compare_open(filename)
+                logger.info("Align " + filepath)
+                txt_manual, txt_ocr = txt_compare_open(filename)
 
-            associations, indexes = align_patterns(
-                txt_ocr, txt_manual, printing)
-            lst_alignments_usable, index_used = get_usable_alignments(
-                associations, indexes)
-            align_cropped(lst_alignments_usable, index_used, filepath)
-            return
+                associations, indexes = align_patterns(
+                    txt_ocr, txt_manual, printing)
+                lst_alignments_usable, index_used = get_usable_alignments(
+                    associations, indexes)
+                align_cropped(lst_alignments_usable, index_used, filepath)
+    else:
+        # Process only specified images
+        for cote in specific_input:
+            for filepath in specific_input[cote]:
+                print(filepath)
+                filename = filepath.split(os.sep)[-1]
+                logger.info("Align " + filepath)
+                txt_manual, txt_ocr = txt_compare_open(filename)
+                associations, indexes = align_patterns(
+                    txt_ocr, txt_manual, printing)
+                lst_alignments_usable, index_used = get_usable_alignments(
+                    associations, indexes)
+                align_cropped(lst_alignments_usable, index_used, filepath)
 
 
 if __name__ == "__main__":
