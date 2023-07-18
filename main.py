@@ -65,6 +65,27 @@ def retriever(cotes, image_dir, output):
     return cotes_associated
 
 
+def processing_pdfs(pdf_source, csv_source, letters_fetched, pdf_extract_dir="tmp"+os.sep+"extract_pdf"):
+
+    pdfs_matched_repo = sorted(list(utils_extract.extract_column_from_csv(csv_source, c1=4, c2=9,
+                                                                          list_to_compare=list(letters_fetched.keys())).items()), key=lambda x: x[0])
+    print(pdfs_matched_repo)
+    # Retrieve pdf and rename them to fit image files' name*
+    for items in pdfs_matched_repo:
+        shutilcopy(pdf_source+os.sep+items[1], pdf_extract_dir)
+        # new_name = cotes_associated[items[0]][0].split(os.sep)[-1][:-4]+".pdf"
+        new_name = items[0]+".pdf"  # Using cote as txt file name
+
+        os.rename(pdf_extract_dir+os.sep +
+                  items[1], pdf_extract_dir+os.sep+new_name)
+        logger.debug("From "+pdf_source+os.sep +
+                     items[1]+", created "+pdf_extract_dir+os.sep+new_name)
+
+    # Retrieve text from pdf
+    pdf_text_extract.retrieve_pdfs_text(
+        pdf_extract_dir, output_folder=txt_extract_dir, regroup=False)
+
+
 if __name__ == "__main__":
 
     # Loggers
@@ -88,7 +109,6 @@ if __name__ == "__main__":
     image_dir = 'Images'
     images_links_path = "tmp"+os.sep+"result_images_link.txt"
     images_extract_dir = "tmp"+os.sep+"extract_image"
-    pdf_extract_dir = "tmp"+os.sep+"extract_pdf"
     txt_extract_dir = "tmp"+os.sep+"extract_txt"
 
     # Filename of the save of matches will be based on a hash made on result of os.walk('Images')
@@ -122,47 +142,26 @@ if __name__ == "__main__":
     # ---------------
 
     # Copy images associated to images_extract_dir
-    nb_image_check = 1
+    nb_image_check = 6
     if nb_image_check <= 0:
         logger.info("Fetching all matches of letter with images")
     else:
         logger.info("Fetching all matches of letter with " +
                     str(nb_image_check) + " image(s)")
     letters_fetched = utils_extract.get_letter_with_n_image(
-        images_links_path, 1)
+        images_links_path, nb_image_check)
     utils_extract.batch_extract_copy(
         letters_fetched, output_dir=images_extract_dir)
 
-    # Online Fetching PDF, DEPRECATED METHOD
-    """
-    # Download necessary pdf
-    print("extract link")
-    links = utils_extract.extract_column_from_csv(csv_source, c1=3, c2=9,
-                                                  list_to_compare=list(letters_fetched.keys()))
-    utils_extract.batch_download_pdf_gdrive(
-        links, output_dir="tmp/extract_pdf", name_associated=cotes_associated)
-
-    """
+    # PDF Processing
     logger.info("Retrieving pdfs' content")
-    pdfs_matched_repo = sorted(list(utils_extract.extract_column_from_csv(csv_source, c1=4, c2=9,
-                                                                          list_to_compare=list(letters_fetched.keys())).items()), key=lambda x: x[0])
-
-    # Retrieve pdf and rename them to fit image files' name
-    for items in pdfs_matched_repo:
-        shutilcopy(pdf_source+os.sep+items[1], pdf_extract_dir)
-        # new_name = cotes_associated[items[0]][0].split(os.sep)[-1][:-4]+".pdf"
-        new_name = items[0]+".pdf"  # Using cote as txt file name
-
-        os.rename(pdf_extract_dir+os.sep +
-                  items[1], pdf_extract_dir+os.sep+new_name)
-
-    # Retrieve text from pdf
-    pdf_text_extract.retrieve_pdfs_text(
-        pdf_extract_dir, output_folder=txt_extract_dir, regroup=False)
+    processing_pdfs(pdf_source, csv_source, letters_fetched,
+                    pdf_extract_dir="tmp"+os.sep+"extract_pdf")
 
     # Process images (segment, predict, crop)
     logger.info("Processing images")
-    process_images.process_images(images_extract_dir, ocr=True, crop=False)
+    process_images.process_images(
+        images_extract_dir, ocr=True, crop=False, specific_input=letters_fetched)
 
     # Alignment text-image of cropped part of an image
-    align.batch_align_crop(images_extract_dir)
+    align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)
