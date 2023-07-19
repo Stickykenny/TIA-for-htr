@@ -10,7 +10,6 @@ logger = logging.getLogger("align_logger")
 
 
 def setup_logger():
-    """To setup as many loggers as you want"""
     # Loggers
     os.makedirs("logs", exist_ok=True)
     logger.setLevel(logging.DEBUG)
@@ -19,7 +18,7 @@ def setup_logger():
 
     # file_handler.setLevel(logging.DEBUG)
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setLevel(logging.INFO)
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)

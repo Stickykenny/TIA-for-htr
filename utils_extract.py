@@ -28,7 +28,6 @@ def get_column_values(csv_source: str, column: int = 9) -> list[str]:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 
-@timeit
 def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
     """
     Retrieve all letters' cote having only n image
@@ -57,7 +56,7 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
             letters_fetched[line[0]] = retrieved_list
             count += 1
     logger.info("Fetched a total of "+str(count) +
-                " pairs of letter-image\nWith a total of "+str(len(letters_fetched))+" uniques letters")
+                " pairs of letter-image, with a total of "+str(len(letters_fetched))+" uniques letters")
     return letters_fetched
 
 
@@ -77,6 +76,13 @@ def __copy_file(filepath: str, dir_target: str, file_rename: str = "") -> None:
     Returns :
         None
     """
+
+    if file_rename and os.path.exists(dir_target+"os.sep"+file_rename):
+        # Skip file renamed already exist
+        return
+    if not file_rename and os.path.exists(dir_target+"os.sep"+filepath):
+        # Skip file already extracted
+        return
 
     if os.path.exists(filepath):
         copy(filepath, dir_target)
@@ -101,7 +107,6 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
     """
     os.makedirs(output_dir, exist_ok=True)
     for item in target.items():
-        # print(item)
         for image in [img for img in item[1]]:
             __copy_file(image, output_dir)
     logger.debug(
