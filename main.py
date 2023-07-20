@@ -1,3 +1,10 @@
+"""
+
+usage : main.py [set_number]
+
+set_number : Specify the group to be processed, with n the number of image per autographe
+"""
+
 import sys
 import retrieve_match
 import utils_extract
@@ -49,7 +56,7 @@ def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
 
         # Make a save of matches understandable by humans
         last_saved = "tmp"+os.sep+"save"+os.sep+"last_matches.txt"
-        with open(last_saved, 'a+') as f:
+        with open(last_saved, 'w') as f:
             for i in cotes_associated_part.items():
                 f.write(str(i[0])+":"+str(i[1])+"\n")
 
@@ -70,7 +77,7 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
     os.makedirs(pdf_extract_dir, exist_ok=True)
     pdfs_matched_repo = sorted(list(utils_extract.extract_column_from_csv(csv_source, c1=4, c2=9,
                                                                           list_to_compare=list(letters_fetched.keys())).items()), key=lambda x: x[0])
-    print(pdfs_matched_repo)
+
     # Retrieve pdf and rename them to fit image files' name*
     for items in pdfs_matched_repo:
         shutilcopy(pdf_source+os.sep+items[1], pdf_extract_dir)
@@ -79,8 +86,6 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
 
         os.rename(pdf_extract_dir+os.sep +
                   items[1], pdf_extract_dir+os.sep+new_name)
-        logger.debug("From "+pdf_source+os.sep +
-                     items[1]+", created "+pdf_extract_dir+os.sep+new_name)
 
     # Retrieve text from pdf
     pdf_text_extract.retrieve_pdfs_text(
@@ -88,6 +93,12 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
 
 
 if __name__ == "__main__":
+
+    if len(sys.argv) > 1:
+        if sys.argv[1].isdigit():
+            nb_image_check = int(sys.argv[1])
+    else:
+        nb_image_check = -1
 
     # Loggers
     logger = monitoring.setup_logger()
@@ -127,7 +138,6 @@ if __name__ == "__main__":
         cotes_associated = retriever(cotes, image_dir, result_filepath)
 
     # Copy images associated to images_extract_dir
-    nb_image_check = 9
     if nb_image_check <= 0:
         logger.info("Fetching all matches of letter with images")
     else:
@@ -151,7 +161,7 @@ if __name__ == "__main__":
     # Process images (segment, predict, crop)
     logger.info("Processing images")
     process_images.process_images(
-        images_extract_dir, ocr=True, crop=False, specific_input=letters_fetched)
+        images_extract_dir, crop=False, specific_input=letters_fetched)
 
     # Alignment text-image of cropped part of an image
     align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)

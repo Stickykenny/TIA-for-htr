@@ -55,8 +55,8 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
             # print(line[0]+","+str(retrieved_list))
             letters_fetched[line[0]] = retrieved_list
             count += 1
-    logger.info("Fetched a total of "+str(count) +
-                " pairs of letter-image, with a total of "+str(len(letters_fetched))+" uniques letters")
+    logger.info("Fetched a total of "+str(sum([len(letters_fetched[key]) for key in letters_fetched])
+                                          )+" pairs of letter-image, with a total of "+str(count) + " uniques letters")
     return letters_fetched
 
 
