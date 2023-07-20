@@ -34,19 +34,18 @@ def kraken_segment(im: Image) -> dict:
     return blla.segment(im)
 
 
-def process_images(main_dir: str, ocr: bool = True, crop: bool = False, specific_input: dict = dict()) -> None:
+@timeit
+def process_images(main_dir: str, crop: bool = False, specific_input: dict = dict()) -> None:
     """
     For all images in a directory, apply segmentation, predictions and cropping
 
     Parameters :
         main_dir :
             Directory in which images are located
-        ocr :
-            If False, skip predictions
         crop :
             If True, produce all cropped segmentations images in ./cropped/
-        specific_input : 
-            Dictionnary {cote:[images]} indicating which images to process 
+        specific_input :
+            Dictionnary {cote:[images]} indicating which images to process
 
     Returns :
         None
@@ -55,61 +54,62 @@ def process_images(main_dir: str, ocr: bool = True, crop: bool = False, specific
     os.makedirs("tmp"+os.sep+"save"+os.sep+"ocr_save", exist_ok=True)
 
     image_extension = (".jpg", ".png", ".svg", "jpeg")
+
+    ocr_count = 0
+    segment_count = 0
+    nb_img_processed = 0
+
     for (dirpath, subdirnames, filenames) in os.walk(main_dir):
         for filename in filenames:
             if not filename.lower().endswith(image_extension):
              # skip non-image file
                 logger.debug("skipped this non-image file : "+filename)
                 continue
+
             for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
                 file_cote = cote_in_name.replace(" ", "")
-                # print(file_cote)
                 if not specific_input or file_cote not in specific_input.keys():
                  # logger.debug("Skipped "+filename +
                  #             " in directory, because not in letter fetched")
                     continue
                 filepath = dirpath+os.sep+filename
-                logger.info("Processing : "+filepath)
                 im = Image.open(filepath)
 
-                # Segmentation
-                logger.debug("Starting segmentation")
-                segment_save = "tmp"+os.sep+"save"+os.sep + \
-                    "segment"+os.sep+filename+'_segment.json'
-                if not (os.path.exists(segment_save) and os.path.isfile(segment_save)):
-                    baseline_seg = kraken_segment(im)
-                    with open(segment_save, 'w') as file:
-                        ujson.dump(baseline_seg, file, indent=4)
-                else:
-                    # Load saved result to save time
-                    logger.debug(
-                        "Loading previous segmentation result "+segment_save)
-                    with open(segment_save, 'rb') as file:
-                        baseline_seg = ujson.load(file)
-                return baseline_seg
-
-                # Prediction
-                logger.debug("Starting prediction")
+                # Segmentation & Prediction
                 predictions = ""
                 predict_backup = "tmp"+os.sep+"save"+os.sep + \
                     "ocr_save"+os.sep+filename+'_ocr.pickle'
-                if ocr:
-                    if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
-                     # Load saved result to save time
-                        logger.debug(
-                            "Loading previous ocr result : "+predict_backup)
-                        with open(predict_backup, 'rb') as file:
-                            predictions = pickle.load(file)
+
+                segment_save = "tmp"+os.sep+"save"+os.sep + \
+                    "segment"+os.sep+filename+'_segment.json'
+                if not os.path.exists(predict_backup) and not os.path.isfile(predict_backup):
+                    logger.info("Processing : "+filepath)
+                    # Segmentation
+                    if not (os.path.exists(segment_save) and os.path.isfile(segment_save)):
+                        logger.debug("Starting segmentation")
+                        baseline_seg = kraken_segment(im)
+                        with open(segment_save, 'w') as file:
+                            ujson.dump(baseline_seg, file, indent=4)
+                        segment_count += 1
                     else:
-                        # https://kraken.re/main/api.html#recognition
-                        predictions = ocr_img(
-                            model, im, baseline_seg, filename)
+                        # Load saved result to save time
+                        logger.debug(
+                            "Loading previous segmentation result "+segment_save)
+                        with open(segment_save, 'rb') as file:
+                            baseline_seg = ujson.load(file)
 
-               # Cropping segmented text
-                cropping(baseline_seg, filepath, predictions, crop)
+                    logger.debug("Starting prediction")
+                    # https://kraken.re/main/api.html#recognition
+                    predictions = ocr_img(model, im, baseline_seg, filename)
+                    ocr_count += 1
 
+                    # Cropping segmented text
+                    cropping(baseline_seg, filepath, predictions, crop)
+
+                nb_img_processed += 1
                 im.close()
-                logger.debug("Done processing")
+                logger.debug("Done with "+str(nb_img_processed)+" images, a total of " + str(segment_count) +
+                             " segmentation did and " + str(ocr_count) + " ocr did")
 
 
 @timeit
