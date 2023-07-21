@@ -4,7 +4,7 @@ Extra Scripts and functions
 from monitoring import timeit
 from ast import literal_eval
 import os
-from shutil import copy
+from shutil import copy, move
 import csv
 from gdown import download as gdown_download
 import logging
@@ -179,14 +179,29 @@ def batch_download_pdf_gdrive(links: dict, output_dir: str = "", quiet: int = 1,
                        quiet=quiet_download, fuzzy=True)
 
 
+def move_files_to_parent_directory(parent_folder: str) -> None:
+    """
+    For each subdirectory move their file into their parent directory
+
+    Parameters :
+        parent_folder:
+            Path to the main directory
+
+    Returns :
+        None
+    """
+
+    for foldername, subfolders, filenames in os.walk(root_folder):
+        for filename in filenames:
+            filepath = foldername+os.sep+filename
+            destination_path = os.sep.join(
+                foldername.split(os.sep)[:-1])+os.sep+filename
+            # print(destination_path)
+            move(filepath, destination_path)
+
+
 if __name__ == "__main__":
 
-    letters_fetched = get_letter_with_n_image("result.txt", 1)
-    batch_extract_copy(letters_fetched)
-
-    csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
-    print("extract link")
-    links = extract_column_from_csv(csv_source, c1=3, c2=9,
-                                    list_to_compare=list(letters_fetched.keys()))
-    print(links)
-    batch_download_pdf_gdrive(links, output_dir="test/extract_pdf")
+    """root_folder = "test/kraken_train/set3"
+    move_files_to_parent_directory(root_folder)"""
+    pass
