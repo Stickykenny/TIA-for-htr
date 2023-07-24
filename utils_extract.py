@@ -7,6 +7,7 @@ import os
 from shutil import copy, move
 import csv
 import logging
+import pickle
 logger = logging.getLogger("align_logger")
 
 
@@ -39,32 +40,21 @@ def get_letter_with_n_image(file: str, n: int = -1, loaded: dict = dict()) -> di
         n : 
             The sound the animal makes
         loaded :
-            The dictionnary of {cote->[images]}
+            The dictionnary of {cote->[images]}, overwrite the file parameter
 
     Returns :
         The dictionnary {cote->[images]} of every letter having n images
     """
-
-    letters_fetched = dict()
     count = 0
     if not loaded:
-        with open(file, 'r') as f:
-            for line in f.readlines():
-                line = line.split(":")
-                retrieved_list = literal_eval(line[1])
-                if n != -1:
-                    if (len(retrieved_list) != n):
-                        continue
-                # print(line[0]+","+str(retrieved_list))
-                loaded[line[0]] = retrieved_list
-                count += 1
-    elif loaded:
-        for entry in loaded:
-            if n != -1:
-                if (len(loaded[entry]) != n):
-                    loaded.pop(entry)
-                    continue
-            count += 1
+        with open(file, 'rb') as f:
+            loaded = pickle.load(f)
+    for entry in loaded:
+        if n != -1:
+            if (len(loaded[entry]) != n):
+                loaded.pop(entry)
+                continue
+        count += 1
     logger.info("Fetched a total of "+str(sum([len(loaded[key]) for key in loaded])
                                           )+" pairs of letter-image, with a total of "+str(count) + " uniques letters")
     return loaded
