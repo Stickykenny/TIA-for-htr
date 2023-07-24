@@ -65,6 +65,7 @@ def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
     # Save the dictionnary object with pickle
     with open(result_filepath, 'ab+') as file:
         pickle.dump(cotes_associated, file)
+
     logger.info("\tSaved backup dictionnary of matches here : "+result_filepath)
 
     logger.info("Found in total "+str(total_found)+" matches of images with letter\nTotalling " +
@@ -106,7 +107,6 @@ if __name__ == "__main__":
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     pdf_source = 'MDV-site-Xavier-Lang'
     image_dir = 'Images'
-    images_links_path = "tmp"+os.sep+"result_images_link.txt"
     images_extract_dir = "tmp"+os.sep+"extract_image"
     txt_extract_dir = "tmp"+os.sep+"extract_txt"
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
         logger.info("Fetching all matches of letter with " +
                     str(nb_image_check) + " image(s)")
     letters_fetched = utils_extract.get_letter_with_n_image(
-        images_links_path, nb_image_check)
+        result_filepath, nb_image_check, cotes_associated)
 
     if len(letters_fetched) == 0:
         logger.info("No letter found, exiting program")
