@@ -28,7 +28,7 @@ def get_column_values(csv_source: str, column: int = 9) -> list[str]:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 
-def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
+def get_letter_with_n_image(file: str, n: int = -1, loaded: dict = dict()) -> dict[str, list[str]]:
     """
     Retrieve all letters' cote having only n image
     if n = -1, this function will simply convert the file into a python dictionnary
@@ -38,6 +38,8 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
             The path of the file containing a dict
         n : 
             The sound the animal makes
+        loaded :
+            The dictionnary of {cote->[images]}
 
     Returns :
         The dictionnary {cote->[images]} of every letter having n images
@@ -45,19 +47,27 @@ def get_letter_with_n_image(file: str, n: int = -1) -> dict[str, list[str]]:
 
     letters_fetched = dict()
     count = 0
-    with open(file, 'r') as f:
-        for line in f.readlines():
-            line = line.split(":")
-            retrieved_list = literal_eval(line[1])
+    if not loaded:
+        with open(file, 'r') as f:
+            for line in f.readlines():
+                line = line.split(":")
+                retrieved_list = literal_eval(line[1])
+                if n != -1:
+                    if (len(retrieved_list) != n):
+                        continue
+                # print(line[0]+","+str(retrieved_list))
+                loaded[line[0]] = retrieved_list
+                count += 1
+    elif loaded:
+        for entry in loaded:
             if n != -1:
-                if (len(retrieved_list) != n):
+                if (len(loaded[entry]) != n):
+                    loaded.pop(entry)
                     continue
-            # print(line[0]+","+str(retrieved_list))
-            letters_fetched[line[0]] = retrieved_list
             count += 1
-    logger.info("Fetched a total of "+str(sum([len(letters_fetched[key]) for key in letters_fetched])
+    logger.info("Fetched a total of "+str(sum([len(loaded[key]) for key in loaded])
                                           )+" pairs of letter-image, with a total of "+str(count) + " uniques letters")
-    return letters_fetched
+    return loaded
 
 
 def __copy_file(filepath: str, dir_target: str, file_rename: str = "") -> None:
