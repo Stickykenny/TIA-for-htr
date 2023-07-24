@@ -6,13 +6,13 @@ from ast import literal_eval
 import os
 from shutil import copy, move
 import csv
-from gdown import download as gdown_download
 import logging
 logger = logging.getLogger("align_logger")
 
 
 def get_column_values(csv_source: str, column: int = 9) -> list[str]:
     """
+
     Retrieve into a list all values from the n column
 
     Parameters :
@@ -150,33 +150,6 @@ def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_comp
                 else:
                     j += 1
     return result
-
-
-def batch_download_pdf_gdrive(links: dict, output_dir: str = "", quiet: int = 1, name_associated: dict = None):
-    """
-    Currently programmed for pdf associated with only 1 image
-    """
-    print("DEPRECATED, avoiding automation of google services")
-    raise AssertionError("DEPRECATED, avoiding automation of google services")
-    return
-    output_dir_checker = output_dir != ""
-    quiet_download = True if quiet < 2 else False
-    os.makedirs(output_dir, exist_ok=True)
-
-    for item in links.items():
-        # TODO Check if already exists
-        url = item[1]
-        # By default, name of the pdf will be the cote
-        output_name = item[0]
-        if name_associated:
-            output_name = name_associated[item[0]][0].split(os.sep)[-1]
-        if (output_dir_checker):
-            output_name = output_dir+os.sep + output_name[:-4]+".pdf"
-
-        if quiet >= 1:
-            print("Downloading > "+str(item)+" to "+output_name)
-        gdown_download(url=url, output=output_name,
-                       quiet=quiet_download, fuzzy=True)
 
 
 def move_files_to_parent_directory(parent_folder: str) -> None:
