@@ -1,0 +1,8 @@
+scipy==1.10.1
+scikit-learn==1.1.2
+kraken
+opencv-python
+Pillow
+pymupdf
+numpy
+ujson
