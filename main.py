@@ -13,7 +13,6 @@ import process_images
 import align
 import os
 from time import time
-from ast import literal_eval as ast_literal_eval
 from shutil import copy as shutilcopy
 import pickle
 from hashlib import sha256
@@ -22,8 +21,21 @@ import logging
 logger = logging.getLogger("align_logger")
 
 
-def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
+def retriever(cotes: dict, image_dir: str, output: str) -> dict:
+    """
+    Retrieve informations to create the dictionnary {cote:[images]}
 
+    Parameters :
+        cotes :
+            Directory to search images, {cote:autographe}
+        path :
+            If True, images will be fetched with their relative path instead of their filename
+        recursive :
+            If True, the search will also go into subdirectory
+
+    Returns :
+        List of all images fetched in the given directory
+    """
     path = True  # If True, result will show images relative path instead of just the filename
 
     # Statistics
@@ -34,10 +46,15 @@ def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
     if os.path.exists(output):
         os.remove(output)
     cotes_associated = dict()
+
+    # For each folder inside
     for dir in next(os.walk(image_dir))[1]:
         path_images_dir = image_dir+os.sep+dir
 
+        # List all images in current directory
         images_files = retrieve_match.fetch_images(path_images_dir, path)
+
+        # Logs & Statistics
         logger.info("For the folder  > "+path_images_dir)
         logger.info("Image count > " + str(len(images_files)) +
                     "| Timer starting now ")
@@ -45,20 +62,26 @@ def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
 
         found_matches, cotes_associated_part = retrieve_match.get_matches(
             cotes, images_files)
-        cotes_associated |= cotes_associated_part
 
+        # Append retrieved dictionnary of cotes into the main dictionnary
+        # cotes_associated |= cotes_associated_part #
+        for e in cotes_associated_part:
+            if e not in cotes_associated:
+                cotes_associated[e] = cotes_associated_part[e]
+
+        # Logs the number of images found and the time taken to find them
         logger.info("Matches found  > " + str(found_matches) +
                     " | Time taken : " + str(time() - start_time))
 
-        # Statistics
+        # Statistics count
         total_found += found_matches
         letters_associated += len(cotes_associated_part)
 
-        # Make a save of matches understandable by humans
-        last_saved = "tmp"+os.sep+"save"+os.sep+"last_matches.txt"
-        with open(last_saved, 'w') as f:
-            for i in cotes_associated_part.items():
-                f.write(str(i[0])+":"+str(i[1])+"\n")
+    # Make a save of matches understandable by humans
+    last_saved = "tmp"+os.sep+"save"+os.sep+"last_matches.txt"
+    with open(last_saved, 'w') as f:
+        for i in cotes_associated_part.items():
+            f.write(str(i[0])+":"+str(i[1])+"\n")
 
     logger.info("\tSaved matches here "+last_saved)
 
@@ -73,37 +96,62 @@ def retriever(cotes: dict[str, str], image_dir: str, output: str) -> dict:
     return cotes_associated
 
 
-def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf") -> None:
+def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf", c1: int = 4, c2: int = 9) -> None:
+    """
+    For all letters specified in letters_fetched, extract the text of the pdf associated into pdf_extract_dir if present in pdf_source 
 
+    Parameters :
+        pdf_source :
+            Path of the folder where all the pdfs are located 
+        csv_source :
+            Path of the csv file containig the information for association
+        letters_fetched :
+            Dictionnary containing in his keys all cotes available
+        pdf_extract_dir :
+            Directory where the pdf will be extracted to
+        c1 :
+            Index of the column in the csv where values are
+            (Default value is tailored for MDV)
+        c2 :
+            Index of the column in the csv where cotes to compare are
+            (Default value is tailored for MDV)
+
+    Returns :
+        None
+    """
     os.makedirs(pdf_extract_dir, exist_ok=True)
+
+    # Retrieve into a sorted list all pdfs usable
     pdfs_matched_repo = sorted(list(utils_extract.extract_column_from_csv(csv_source, c1=4, c2=9,
                                                                           list_to_compare=list(letters_fetched.keys())).items()), key=lambda x: x[0])
 
-    # Retrieve pdf and rename them to fit image files' name*
+    # Copy pdf into pdf_extract_dir and rename them to fit "{cote}.pdf"
     for items in pdfs_matched_repo:
         shutilcopy(pdf_source+os.sep+items[1], pdf_extract_dir)
-        # new_name = cotes_associated[items[0]][0].split(os.sep)[-1][:-4]+".pdf"
         new_name = items[0]+".pdf"  # Using cote as txt file name
 
         os.rename(pdf_extract_dir+os.sep +
                   items[1], pdf_extract_dir+os.sep+new_name)
 
-    # Retrieve text from pdf
+    # For all pdf in pdf_extract_dir, extract the text into a file name "{cote.gt.txt}" (.gt.txt is the sufix used in kraken/ketos)
     pdf_text_extract.retrieve_pdfs_text(
         pdf_extract_dir, output_folder=txt_extract_dir, regroup=False)
 
 
 if __name__ == "__main__":
 
+    # Indicate in CLI which cote you want to process by number of images associated
+    # Default is -1, meaning every cote is processed
     if len(sys.argv) > 1:
         if sys.argv[1].isdigit():
             nb_image_check = int(sys.argv[1])
     else:
         nb_image_check = -1
 
-    # Loggers
+    # Logger
     logger = monitoring.setup_logger()
 
+    # Define files and directory location
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     pdf_source = 'MDV-site-Xavier-Lang'
     image_dir = 'Images'
@@ -116,16 +164,19 @@ if __name__ == "__main__":
     result_filepath = "tmp"+os.sep+"save"+os.sep+"match"+os.sep + \
         str(hash_filename)+".pickle"
 
+    # Create directories for save and results
     os.makedirs(images_extract_dir, exist_ok=True)
     os.makedirs(txt_extract_dir, exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
 
-    # Retrieve csv data
+    # Retrieve from csv every cote in the form of a dictionnary cote:autographe
     autographes = utils_extract.get_column_values(csv_source, column=9)
     cotes = retrieve_match.indexing_autographes(autographes)
     logger.debug("Retrieved csv data")
-    # ---------------
 
+    # -------------------------------------------------------------------
+
+    # Find images associated with cotes
     cotes_associated = {}
     if (os.path.exists(result_filepath) and os.path.isfile(result_filepath)):
         # Load saved result to save time
@@ -137,15 +188,20 @@ if __name__ == "__main__":
         # This one process may take time
         cotes_associated = retriever(cotes, image_dir, result_filepath)
 
+    # -------------------------------------------------------------------
+
     # Copy images associated to images_extract_dir
     if nb_image_check <= 0:
         logger.info("Fetching all matches of letter with images")
     else:
         logger.info("Fetching all matches of letter with " +
                     str(nb_image_check) + " image(s)")
+
+    # -------------------------------------------------------------------
+
+    # Filter out some cote
     letters_fetched = utils_extract.get_letter_with_n_image(
         result_filepath, nb_image_check, cotes_associated)
-
     if len(letters_fetched) == 0:
         logger.info("No letter found, exiting program")
         sys.exit()
@@ -158,10 +214,14 @@ if __name__ == "__main__":
     processing_pdfs(pdf_source, csv_source, letters_fetched,
                     pdf_extract_dir="tmp"+os.sep+"extract_pdf")
 
+    # -------------------------------------------------------------------
+
     # Process images (segment, predict, crop)
     logger.info("Processing images")
     process_images.process_images(
         images_extract_dir, crop=False, specific_input=letters_fetched)
+
+    # -------------------------------------------------------------------
 
     # Alignment text-image of cropped part of an image
     align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)

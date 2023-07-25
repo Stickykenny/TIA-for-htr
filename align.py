@@ -28,10 +28,11 @@ def levenshtein_dist(s1: str, s2: str) -> float:
     """
     m, n = len(s1)+1, len(s2)+1
 
+    # Init all values of matrix with zeros
     d = [[0]*(n) for i in range(m)]
 
+    # Init at 0, so that the word can start anywhere, so this block is commented
     """
-    # peut commencer à aligner à n'importe qu'elle endroit
     for i in range(m) :
         D[i][0] = i
     for j in range(n) :
@@ -42,17 +43,14 @@ def levenshtein_dist(s1: str, s2: str) -> float:
         for i in range(1, m):
             cost = 0 if s1[i-1] == s2[j-1] else 1
             d[i][j] = min(
-                d[i-1][j]+1,  # effacement du nouveau caractère de s1
-                d[i][j-1]+1,  # insertion dans s2 du nouveau caractère de s1
+                d[i-1][j]+1,  # deletion of the new character of s1
+                d[i][j-1]+1,  # insertion in s2 of the new character of s1
                 d[i-1][j-1]+cost)  # substitution
 
-    for i in d:
-        # print(i)
-        pass
     return d[m-1][n-1]
 
 
-def lis(arr: list) -> tuple[int, list[int]]:
+def lis(arr: list) -> tuple:
     """
     Longuest increasing sequence, dynamic programming
 
@@ -74,7 +72,7 @@ def lis(arr: list) -> tuple[int, list[int]]:
     return max(lis), lis
 
 
-def txt_compare_open(image_filename: str) -> tuple[str, list[str]]:
+def txt_compare_open(image_filename: str) -> tuple:
     """
     Retrieve the ocr result and the transcription of the filename
 
@@ -89,15 +87,18 @@ def txt_compare_open(image_filename: str) -> tuple[str, list[str]]:
     name_pattern = re.compile("\d+(?:-\d+)*")
     cote = name_pattern.search(image_filename).group(0)
 
+    # Retrieve filepath of the ocr and manual transcription form the image filename
     txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+cote+".gt.txt"
     txt_ocr_file = "tmp"+os.sep+"ocr_result" + \
         os.sep+image_filename[:-4]+"_ocr.txt"
 
+    # Retrieve the manual transcription without tab and newline
     with open(txt_manual_file, newline='') as inputfile:
         txt_manual = inputfile.readlines()
         txt_manual.pop()  # Remove last line which is autographe reference
         txt_manual = ''.join(txt_manual).replace('\t', '').replace('\n', '')
 
+    # Retrieve the ocr prediction into a list of each segmented part
     with open(txt_ocr_file, newline='') as inputfile:
         txt_ocr = inputfile.readlines()
         txt_ocr = [txt.replace('\t', '').replace('\n', '') for txt in txt_ocr]
@@ -121,9 +122,12 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
             (By default : -1, negative value will complete the word no matter how long it is) 
 
     Returns:
-        Text processed 
+        Text processed that may be extended
     """
+
+    # Will extend upper and lower bound until a word separator if encountered
     word_separator = [" ", ",", ""]
+
     new_upper = upper_bound
     new_lower = lower_bound
     character = corpus[new_lower]
@@ -136,6 +140,7 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
         new_upper += 1
         character = corpus[new_upper]
 
+    # Threshold check, to not extend too much
     if threshold >= 0:
         if lower_bound - new_lower >= threshold:
             # should not complete more than threshold characters
@@ -148,7 +153,7 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
 
 
 @timeit
-def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple[dict, list]:
+def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
     """
     Find the best alignment for each pattern
 
@@ -168,11 +173,17 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple[dic
     # associations = [ [pattern, pattern_index, text_matched, distance score]  , [ ... ] , ... ]
     associations = []
     pattern_index = 0
+
+    # For each pattern found by the ocr
+    # 1/ Align them in the original text using hamming distance
+    # 2/ With the best match, complete word if necessary
     for pattern in patterns:
         scores = []
         for i in range(len(text)-len(pattern)):
             scores.append(levenshtein_dist(pattern, text[i:i+len(pattern)]))
         index = np.argmin(scores)
+
+        # A distance too great too great is ignored
         if scores[index] < len(pattern)//1.5:
 
             # Complete words
@@ -182,15 +193,17 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple[dic
                 pattern, pattern_index, text_match, scores[index]])
             indexes.append(index)
 
+            # if True, if will log a trace of every alignment done ( cause a lot of logs )
             if printing:
                 logger.debug("For : "+str(pattern)+" | >> dist score : " +
                              str(scores[index]) + "\t\t\t at index : "+str(index))
                 logger.debug("\t "+text_match)
+
         pattern_index += 1
     return associations, indexes
 
 
-def get_usable_alignments(associations: dict[str, int, str, int], indexes: list[int]) -> tuple[dict, list]:
+def get_usable_alignments(associations: dict, indexes: list) -> tuple:
     """
     Use LIS(Longuest Increasing Sequence) to remove alignments that are likely wrong
 
@@ -221,7 +234,7 @@ def get_usable_alignments(associations: dict[str, int, str, int], indexes: list[
     return lst, index_used
 
 
-def align_cropped(lst: list[str, int, str, int], filepath: str, checklist: set[str]) -> None:
+def align_cropped(lst: list, filepath: str, checklist: set) -> None:
     """
     For each alignment, create the pair text-image
 
@@ -239,7 +252,7 @@ def align_cropped(lst: list[str, int, str, int], filepath: str, checklist: set[s
 
     filename = filepath.split(os.sep)[-1]
 
-    # Fetch position of segmented pattern
+    # Fetch position of segmented pattern from pickled save of an ocr_record
     predict_backup = "tmp"+os.sep+"save"+os.sep + \
         "ocr_save"+os.sep+filename+'_ocr.pickle'
     with open(predict_backup, 'rb') as file:
@@ -252,6 +265,7 @@ def align_cropped(lst: list[str, int, str, int], filepath: str, checklist: set[s
     files_cropping_dir = [file for file in os.walk(cropping_dir)][0][2]
     if len(files_cropping_dir) == 2*len(lst):
         logger.debug("Cropped are already present in "+cropping_dir)
+
     else:
         # Align text-image for crop
         img = cv.imread(filepath, cv.IMREAD_COLOR)
@@ -265,10 +279,18 @@ def align_cropped(lst: list[str, int, str, int], filepath: str, checklist: set[s
             for j in range(1, len(boundaries)):
                 x = boundaries[j][0]
                 y = boundaries[j][1]
+
+                # Take larger coordinates for a rectangle cropping
                 x_min = (x if x < x_min else x_min)
                 x_max = (x if x > x_max else x_max)
                 y_min = (y if y < y_min else y_min)
                 y_max = (y if y > y_max else y_max)
+
+            # If the text matched is empty, skip
+            if not lst[i][2]:
+                continue
+
+            # Create cropped file associated
             cropped = img[y_min:y_max, x_min:x_max]
             cropped_img_path = cropping_dir+os.sep + \
                 filename[:-4]+"_"+str(name_iterator)+".jpg"
@@ -287,6 +309,7 @@ def align_cropped(lst: list[str, int, str, int], filepath: str, checklist: set[s
         checklist.add(cropping_dir)
     with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.pickle", "wb") as file:
         pickle.dump(checklist, file)
+
     logger.debug("Added "+cropping_dir + " to the checklist of cropped image")
 
 
@@ -309,6 +332,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
     logger.info("Started batch align text-images with segmented images")
     count = 0
 
+    # Use a list to verify whether the text-image alignment is already done for a file
     checklist_path = "tmp"+os.sep+"save"+os.sep+"cropped_checklist.pickle"
     if not (os.path.exists(checklist_path) or os.path.isfile(checklist_path)):
         # Create new empty checklist is one doesn't exist
@@ -327,6 +351,8 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
         for (dirpath, subdirnames, filenames) in os.walk(image_dir):
             for filename in filenames:
                 filepath = dirpath+os.sep+filename
+
+                # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
                 try:
                     count = apply_align(
                         count, filename, filepath, printing, checklist)
@@ -344,7 +370,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                     count, filename, filepath, printing, checklist)
 
 
-def apply_align(count: int, filename: str, filepath: str, printing: bool, checklist: set = None) -> int:
+def apply_align(count: int, filename: str, filepath: str, checklist: set = None) -> int:
     """
     Apply alignment to create pairs of text-images
 
@@ -355,8 +381,6 @@ def apply_align(count: int, filename: str, filepath: str, printing: bool, checkl
             Name of the image file
         filepath :
             Path to the image file
-        printing:
-            If True, logger will log in debug of each text-image alignment with their score
         checklist:
             Set of all images already cropped
 
@@ -369,11 +393,19 @@ def apply_align(count: int, filename: str, filepath: str, printing: bool, checkl
         return
 
     logger.info("Align " + filepath)
+
+    # Fetch the manual transcription and the ocr
     txt_manual, txt_ocr = txt_compare_open(filename)
+
+    # Align each pattern of the ocr to the transcription
     associations, indexes = align_patterns(
         txt_ocr, txt_manual)
+
+    # TODO When implemented will curate the alignments
     lst_alignments_usable, index_used = get_usable_alignments(
         associations, indexes)
+
+    # Crop and produce every pair of text-image
     align_cropped(lst_alignments_usable, filepath, checklist)
 
     count += 1

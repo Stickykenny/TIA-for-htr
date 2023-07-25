@@ -3,6 +3,7 @@ pdf_text_extract.py: Contains functions for the processing of pdf files
 """
 
 import os
+# fitz is installed with 'pip install pymupdf'
 import fitz  # import PyMuPdf better than PyPDF due to spaces appearing in words
 import logging
 from monitoring import timeit
@@ -20,6 +21,8 @@ def extract_pdf_text(path: str) -> str:
     Returns :
         Text extracted from the pdf
     """
+
+    # Check pdf extension
     if path.split(".")[-1] != "pdf":
         raise ValueError("File introduced isn't a pdf")
 
@@ -51,7 +54,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
             (default = "\n"+">"*10+"\n")
         output_folder :
             Directory where files are saved
-            (default = "text_extracted" =
+            (default = "text_extracted")
 
     Returns :
         None
@@ -64,6 +67,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
     if regroup:
         # Regroup all texts in one file for mass process
         with open(output_file, 'w') as new_file:
+            # textarea_maxlength = 524288
             for file in pdf_files:
                 if file.split(".")[-1] != "pdf":
                     break
@@ -86,6 +90,8 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
 
 if __name__ == "__main__":
 
+    pass
+    """
     path_PDFs_dir = "pdfTest"  # "MDV-site-Xavier-Lang"
     retrieve_pdfs_text(path_PDFs_dir, regroup=False)
-    # retrieve_pdfs_text(path_PDFs_dir, regroup = False)
+    # retrieve_pdfs_text(path_PDFs_dir, regroup = False)"""

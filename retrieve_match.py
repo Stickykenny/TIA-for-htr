@@ -2,19 +2,15 @@
 retrieve_match.py: Contains functions for the task of fetching the usable data
 """
 
-from monitoring import timeit
 import os
 import re
-import time
-from utils_extract import get_column_values
-from hashlib import sha256
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("align_logger")
 
 image_extension = (".jpg", ".png", ".svg", "jpeg")
 
 
-def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str]:
+def fetch_images(directory: str, path: bool, recursive: bool = True) -> list:
     """
     Retrieve every image file in the directory indicated
 
@@ -31,20 +27,24 @@ def fetch_images(directory: str, path: bool, recursive: bool = True) -> list[str
     """
     images_files = []
     for (dirpath, subdirnames, filenames) in os.walk(directory):
+
         if path:
+            # if True, retrieve images' filepath instead of filename
             images_files.extend(
                 [dirpath+os.sep+f for f in filenames if f.lower().endswith(image_extension)])
         else:
             images_files.extend(
                 [f for f in filenames if f.lower().endswith(image_extension)])
+
         if not recursive:
             break
+
     logger.debug("Found "+str(len(images_files))+" images inside " +
                  directory + " recurssively" if recursive else "without recursion")
     return images_files
 
 
-def indexing_autographes(autographes: list[str]) -> dict[str, str]:
+def indexing_autographes(autographes: list) -> dict:
     """
     Retrieve into a dictionnary the association cote->autographe from a list of autographes
     This function is highly fitted for naming convention of "MsXXX-X.. .jpg"
@@ -58,8 +58,11 @@ def indexing_autographes(autographes: list[str]) -> dict[str, str]:
     """
     cotes = {}
     for letter_name in autographes:
-        # print(letter_name, end=" | ")
         cote = ""
+
+        # Regex expression to get only cote from file name, it also takes into account
+        # "bis" et "ter" denomination with the convention XXXX-XXX-XX
+
         for numbers in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", letter_name):
             # Concatenate every cotes from the same letter with "+" sign
             if cote != "":
@@ -68,18 +71,16 @@ def indexing_autographes(autographes: list[str]) -> dict[str, str]:
         cote = cote.replace(" ", "")
         if cote != "":
             cotes[cote] = letter_name
-            # print(cote +"  ->  "+ letter_name)
     return cotes
 
 
-# @timeit there's already timer fetch_images()
-def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
+def get_matches(cotes: dict, images_files: list) -> tuple:
     """
     Associate every cotes their images if it exists
 
     Parameters :
         cotes :
-            Dictionnary of cotes
+            Dictionnary of {cotecote:autographe}
         images_files :
             List containing paths to images
 
@@ -89,41 +90,52 @@ def get_matches(cotes: dict, images_files: list[str]) -> tuple[int, dict]:
     count = 0
     cotes_availables = {}
 
+    # In a sorted list, we fetch filename
     files = sorted([i for i in images_files if i.split(
         os.sep)[-1].lower().startswith("ms")])
     current_size = len(files)
     i = 0
+
     # To find matches more efficiently, we remove images found associated
     # This can be optimized probably
+
+    # This algorithm works by iterating with i through every files
     while i < current_size:
         cotes, count, cotes_availables, files, current_size, i = __compare_match(
             cotes, count, cotes_availables, files, current_size, i)
+
     return count, cotes_availables
 
 
 def __compare_match(cotes, count, cotes_availables, files, current_size, i):
     """
     Private function used to loop though every cote, it was created because 'break' couldn't break out of outer loop
+    ( see get_matches() )
     """
     for cote_group in cotes.keys():
         # Loop though each cote_group (some letter have 2 cotes)
         for cote in cote_group.split("+"):
 
             # Normalize cote from the file to fit the csv
+            # Same regex as in indexing_autographes()
+
             filename = files[i].lower()
-            # print(filename)
             for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
-                # print(filename+">> "+cote_in_name + " ==? "+ cote )
                 if cote == cote_in_name.replace(" ", ""):
 
+                    # Init a list for new entry
                     if cote not in cotes_availables:
                         cotes_availables[cote] = []
+
+                    # Append to this list every
                     cotes_availables[cote].append(files[i])
                     count += 1
+
                     # Optimize by removing image already associated
                     logger.debug("Matched "+str(count) + " image(s)")
                     del files[i]
                     current_size -= 1
+
                     return cotes, count, cotes_availables, files, current_size, 0
     else:
         return cotes, count, cotes_availables, files, current_size, i+1
