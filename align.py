@@ -8,6 +8,7 @@ import pickle
 import cv2 as cv
 import re
 from monitoring import timeit
+import ujson
 import logging
 logger = logging.getLogger("align_logger")
 
@@ -333,15 +334,15 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
     count = 0
 
     # Use a list to verify whether the text-image alignment is already done for a file
-    checklist_path = "tmp"+os.sep+"save"+os.sep+"cropped_checklist.pickle"
+    checklist_path = "tmp"+os.sep+"save"+os.sep+"cropped_checklist.json"
     if not (os.path.exists(checklist_path) or os.path.isfile(checklist_path)):
         # Create new empty checklist is one doesn't exist
         checklist = set()
-        with open(checklist_path, "wb") as file:
-            pickle.dump(checklist, file)
+        with open(checklist_path, "w") as file:
+            ujson.dump(checklist, file)
     else:
-        with open(checklist_path, "rb") as file:
-            checklist = pickle.load(file)
+        with open(checklist_path, "r") as file:
+            checklist = ujson.load(file)
 
     # Verify checklist folder is still correct
     # TODO
