@@ -51,6 +51,31 @@ def levenshtein_dist(s1: str, s2: str) -> float:
     return d[m-1][n-1]
 
 
+def calculate_error_rate(pattern: str, reference: str, percent: bool = False):
+    """
+    Calculate Word Error Rate and Character Error Rate
+
+    Parameters :
+        pattern :
+            pattern to test
+        reference :
+            Reference to compare to
+        percent : 
+            If True, result will be in percent
+
+    Returns :
+        The WER and the CER
+    """
+    pattern_words = pattern.split()
+    ref_words = reference.split()
+
+    wer = levenshtein_dist(pattern_words, ref_words)[0]/len(ref_words)
+    cer = levenshtein_dist(pattern, reference)[0]/len(reference)
+    if percent:
+        wer, cer = wer*100, cer*100
+    return wer, cer
+
+
 def lis(arr: list) -> tuple:
     """
     Longuest increasing sequence, dynamic programming
@@ -188,17 +213,20 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
         if scores[index] < len(pattern)//1.5:
 
             # Complete words
-            text_match = complete_word(text, index, index+len(pattern))
+            text_complete = complete_word(text, index, index+len(pattern))
 
             associations.append([
-                pattern, pattern_index, text_match, scores[index]])
+                pattern, pattern_index, text_complete, scores[index]])
             indexes.append(index)
 
             # if True, if will log a trace of every alignment done ( cause a lot of logs )
             if printing:
+                wer, cer = calculate_error_rate(pattern, text, percent=True)
                 logger.debug("For : "+str(pattern)+" | >> dist score : " +
                              str(scores[index]) + "\t\t\t at index : "+str(index))
-                logger.debug("\t "+text_match)
+                logger.debug("\t "+text_complete)
+                logger.debug("Word Error Rate : "+wer +
+                             "%, Character Error Rate : "+cer+"%")
 
         pattern_index += 1
     return associations, indexes
