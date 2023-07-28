@@ -80,7 +80,7 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
     # Make a save of matches understandable by humans
     last_saved = "tmp"+os.sep+"save"+os.sep+"last_matches.txt"
     with open(last_saved, 'w') as f:
-        for i in cotes_associated_part.items():
+        for i in cotes_associated.items():
             f.write(str(i[0])+":"+str(i[1])+"\n")
 
     logger.info("\tSaved matches here "+last_saved)
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     process_images.process_images(
         images_extract_dir, crop=False, specific_input=letters_fetched)
 
-    # -------------------------------------------------------------------
+# -------------------------------------------------------------------
 
-    # Alignment text-image of cropped part of an image
-    align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)
+# Alignment text-image of cropped part of an image
+align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)

@@ -48,7 +48,7 @@ def levenshtein_dist(s1: str, s2: str) -> float:
                 d[i][j-1]+1,  # insertion in s2 of the new character of s1
                 d[i-1][j-1]+cost)  # substitution
 
-    return d[m-1][n-1]
+    return d[m-1][n-1], d
 
 
 def calculate_error_rate(pattern: str, reference: str, percent: bool = False):
@@ -96,6 +96,10 @@ def lis(arr: list) -> tuple:
                 lis[i] = lis[j]+1
 
     return max(lis), lis
+
+
+def hamming_distance(string1, string2):
+    return sum(c1 != c2 for c1, c2 in zip(string1, string2))
 
 
 def txt_compare_open(image_filename: str) -> tuple:
@@ -206,11 +210,15 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
     for pattern in patterns:
         scores = []
         for i in range(len(text)-len(pattern)):
-            scores.append(levenshtein_dist(pattern, text[i:i+len(pattern)]))
+            scores.append(hamming_distance(pattern, text[i:i+len(pattern)]))
         index = np.argmin(scores)
 
         # A distance too great too great is ignored
         if scores[index] < len(pattern)//1.5:
+
+            if not pattern or pattern.isspace():
+                # Skip empty ocr
+                continue
 
             # Complete words
             text_complete = complete_word(text, index, index+len(pattern))
@@ -225,8 +233,8 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
                 logger.debug("For : "+str(pattern)+" | >> dist score : " +
                              str(scores[index]) + "\t\t\t at index : "+str(index))
                 logger.debug("\t "+text_complete)
-                logger.debug("Word Error Rate : "+wer +
-                             "%, Character Error Rate : "+cer+"%")
+                logger.debug("WER : "+str(wer) +
+                             ", CER : "+str(cer))
 
         pattern_index += 1
     return associations, indexes
@@ -333,11 +341,11 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
                      str(name_iterator) + " times for "+filename)
 
     # Update checklist to indicate this crop is done
-    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.pickle", "rb") as file:
-        checklist = pickle.load(file)
-        checklist.add(cropping_dir)
-    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.pickle", "wb") as file:
-        pickle.dump(checklist, file)
+    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "r") as file:
+        checklist = ujson.load(file)
+        checklist.append(cropping_dir)
+    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "w") as file:
+        ujson.dump(checklist, file)
 
     logger.debug("Added "+cropping_dir + " to the checklist of cropped image")
 
@@ -384,7 +392,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                 # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
                 try:
                     count = apply_align(
-                        count, filename, filepath, printing, checklist)
+                        count, filename, filepath, checklist)
                 except:
                     logger.warning(
                         "Error trying to align this file : "+filepath)
@@ -396,7 +404,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                 filename = filepath.split(os.sep)[-1]
 
                 count = apply_align(
-                    count, filename, filepath, printing, checklist)
+                    count, filename, filepath, checklist)
 
 
 def apply_align(count: int, filename: str, filepath: str, checklist: set = None) -> int:
