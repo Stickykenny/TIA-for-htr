@@ -60,7 +60,7 @@ def calculate_error_rate(pattern: str, reference: str, percent: bool = False):
             pattern to test
         reference :
             Reference to compare to
-        percent : 
+        percent :
             If True, result will be in percent
 
     Returns :
@@ -98,7 +98,19 @@ def lis(arr: list) -> tuple:
     return max(lis), lis
 
 
-def hamming_distance(string1, string2):
+def hamming_distance(string1: str, string2: str) -> int:
+    """
+    Calculate the Hamming Distance between 2 strings
+
+    Parameters:
+        string1 :
+            The first string
+        string2 :
+            The second string
+
+    Returns:
+        the Hamming Distance between 2 strings
+    """
     return sum(c1 != c2 for c1, c2 in zip(string1, string2))
 
 
@@ -345,7 +357,7 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
         checklist = ujson.load(file)
         checklist.append(cropping_dir)
     with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "w") as file:
-        ujson.dump(checklist, file)
+        ujson.dump(checklist, file, indent=4)
 
     logger.debug("Added "+cropping_dir + " to the checklist of cropped image")
 
@@ -402,7 +414,6 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
         for cote in specific_input:
             for filepath in specific_input[cote]:
                 filename = filepath.split(os.sep)[-1]
-
                 count = apply_align(
                     count, filename, filepath, checklist)
 
@@ -426,13 +437,16 @@ def apply_align(count: int, filename: str, filepath: str, checklist: set = None)
     """
 
     # Check if image was already cropped and aligned, then no need to align
-    if checklist and filename in checklist:
-        return
+    if checklist and ("tmp"+os.sep+"cropped_match"+os.sep + filename) in checklist:
+        return count
 
     logger.info("Align " + filepath)
-
     # Fetch the manual transcription and the ocr
-    txt_manual, txt_ocr = txt_compare_open(filename)
+    try:
+        txt_manual, txt_ocr = txt_compare_open(filename)
+    except Exception as Argument:
+        logger.warning("Error loading text for alignment : "+str(Argument))
+        return count
 
     # Align each pattern of the ocr to the transcription
     associations, indexes = align_patterns(
