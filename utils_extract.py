@@ -184,6 +184,36 @@ def move_files_to_parent_directory(parent_folder: str) -> None:
             move(filepath, destination_path)
 
 
+def check_exclude_file(file: str, terms_to_exclude: list, case_sensitive: bool = False) -> bool:
+    """
+    Verify if the file should be processed or ignored
+
+    Parameters:
+        file :
+            Filename or filepath to check
+        terms_to_exclude :
+            List of words indicating the file should be skipped
+        case_sensitive :
+            If True, exclusion will be case sensitive (default : False)
+
+    Returns:
+        True if the filename contains a term to exclude, else return False
+
+    """
+
+    filename = file.split(os.sep)[-1]
+
+    if not case_sensitive:
+        for i in range(len(terms_to_exclude)):
+            terms_to_exclude[i] = terms_to_exclude[i].lower()
+        filename = filename.lower()
+
+    for pattern in terms_to_exclude:
+        if pattern in filename:
+            return True
+    return False
+
+
 if __name__ == "__main__":
 
     """root_folder = "test/kraken_train/set3"
