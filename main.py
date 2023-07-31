@@ -140,14 +140,6 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
 
 if __name__ == "__main__":
 
-    # Indicate in CLI which cote you want to process by number of images associated
-    # Default is -1, meaning every cote is processed
-    if len(sys.argv) > 1:
-        if sys.argv[1].isdigit():
-            nb_image_check = int(sys.argv[1])
-    else:
-        nb_image_check = -1
-
     # Logger
     logger = monitoring.setup_logger()
 
@@ -191,17 +183,14 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
 
     # Copy images associated to images_extract_dir
-    if nb_image_check <= 0:
-        logger.info("Fetching all matches of letter with images")
-    else:
-        logger.info("Fetching all matches of letter with " +
-                    str(nb_image_check) + " image(s)")
+    logger.info("Fetching all matches of letter with " +
+                str(-1) + " image(s)")
 
     # -------------------------------------------------------------------
 
     # Filter out some cote
     letters_fetched = utils_extract.get_letter_with_n_image(
-        result_filepath, nb_image_check, cotes_associated)
+        result_filepath, -1, cotes_associated)
     if len(letters_fetched) == 0:
         logger.info("No letter found, exiting program")
         sys.exit()
