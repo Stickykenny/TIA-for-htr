@@ -32,13 +32,10 @@ def levenshtein_dist(s1: str, s2: str) -> float:
     # Init all values of matrix with zeros
     d = [[0]*(n) for i in range(m)]
 
-    # Init at 0, so that the word can start anywhere, so this block is commented
-    """
-    for i in range(m) :
-        D[i][0] = i
-    for j in range(n) :
-        D[0][j] = j
-    """
+    for i in range(m):
+        d[i][0] = i
+    for j in range(n):
+        d[0][j] = j
 
     for j in range(1, n):
         for i in range(1, m):
@@ -51,7 +48,7 @@ def levenshtein_dist(s1: str, s2: str) -> float:
     return d[m-1][n-1], d
 
 
-def calculate_error_rate(pattern: str, reference: str, percent: bool = False):
+def calculate_error_rate(pattern, reference, norm=True, percent=False):
     """
     Calculate Word Error Rate and Character Error Rate
 
@@ -69,8 +66,13 @@ def calculate_error_rate(pattern: str, reference: str, percent: bool = False):
     pattern_words = pattern.split()
     ref_words = reference.split()
 
-    wer = levenshtein_dist(pattern_words, ref_words)[0]/len(ref_words)
-    cer = levenshtein_dist(pattern, reference)[0]/len(reference)
+    wer = levenshtein_dist(pattern_words, ref_words)[0]
+    cer = levenshtein_dist(pattern, reference)[0]
+    if norm or percent:
+        if len(ref_words):
+            wer = wer/len(ref_words)
+        if len(reference):
+            cer = cer/len(reference)
     if percent:
         wer, cer = wer*100, cer*100
     return wer, cer
@@ -161,7 +163,7 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
             index where the extracted text ends
         threshold:
             Maximum number of characters to extend to complete a word
-            (By default : -1, negative value will complete the word no matter how long it is) 
+            (By default : -1, negative value will complete the word no matter how long it is)
 
     Returns:
         Text processed that may be extended
@@ -192,6 +194,31 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
             new_upper = upper_bound
 
     return corpus[new_lower:new_upper]
+
+
+def check_dist_acceptance(x: int, dist: int):
+    """
+    Check whether the distance is smaller than the custom math function
+    This math function was created as a separator between acceptable alignments and non-acceptable alignments
+
+    Parameters:
+        x =
+
+    Returns:
+        True if dist if smaller than the custom math function
+    """
+    if x < 0 or dist < 0:
+        logger.warning(
+            "It was asked to check the acceptance of a value that shouldn't be possible in a discrete environnement")
+        return True
+
+    if x >= 60 and dist < 0.6:
+        return True
+    elif x >= 20 and x <= 60 and dist < (0.005*x+0.3):
+        return True
+    elif x <= 20 and dist < (0.04*x-0.4):
+        return True
+    return False
 
 
 @timeit
@@ -225,15 +252,24 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
             scores.append(hamming_distance(pattern, text[i:i+len(pattern)]))
         index = np.argmin(scores)
 
-        # A distance too great too great is ignored
-        if scores[index] < len(pattern)//1.5:
+        # Complete words
+        text_complete = complete_word(text, index, index+len(pattern))
 
-            if not pattern or pattern.isspace():
-                # Skip empty ocr
-                continue
+        if not pattern or pattern.isspace():
+            # Skip empty ocr/pattern
+            continue
 
-            # Complete words
-            text_complete = complete_word(text, index, index+len(pattern))
+        # Get Word Error Rate and Character Error Rate
+        wer, cer = calculate_error_rate(pattern, text_complete)
+
+        # Get the minimum between the hamming distance
+        # and the CER = Levensthein distance with the text completed
+        min_normalized = scores[index]/len(pattern)
+        if min_normalized > cer:
+            min_normalized = cer
+
+        # A distance too great is ignored
+        if check_dist_acceptance(len(pattern), min_normalized):
 
             associations.append([
                 pattern, pattern_index, text_complete, scores[index]])
@@ -241,9 +277,8 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
 
             # if True, if will log a trace of every alignment done ( cause a lot of logs )
             if printing:
-                wer, cer = calculate_error_rate(pattern, text, percent=True)
                 logger.debug("For : "+str(pattern)+" | >> dist score : " +
-                             str(scores[index]) + "\t\t\t at index : "+str(index))
+                             str(scores[index]/len(pattern)) + "\t\t\t at index : "+str(index))
                 logger.debug("\t "+text_complete)
                 logger.debug("WER : "+str(wer) +
                              ", CER : "+str(cer))
@@ -296,7 +331,7 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
             Set of all images already cropped
 
     Returns:
-        None    
+        None
     """
 
     filename = filepath.split(os.sep)[-1]
@@ -312,45 +347,42 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
 
     # Check if cropped are already done
     files_cropping_dir = [file for file in os.walk(cropping_dir)][0][2]
-    if len(files_cropping_dir) == 2*len(lst):
-        logger.debug("Cropped are already present in "+cropping_dir)
 
-    else:
-        # Align text-image for crop
-        img = cv.imread(filepath, cv.IMREAD_COLOR)
-        name_iterator = 0
+    # Align text-image for crop
+    img = cv.imread(filepath, cv.IMREAD_COLOR)
+    name_iterator = 0
 
-        for i in range(len(lst)):
-            # Crop the image
-            boundaries = predictions[lst[i][1]].line
-            x_min = x_max = boundaries[0][0]
-            y_min = y_max = boundaries[0][1]
-            for j in range(1, len(boundaries)):
-                x = boundaries[j][0]
-                y = boundaries[j][1]
+    for i in range(len(lst)):
+        # Crop the image
+        boundaries = predictions[lst[i][1]].line
+        x_min = x_max = boundaries[0][0]
+        y_min = y_max = boundaries[0][1]
+        for j in range(1, len(boundaries)):
+            x = boundaries[j][0]
+            y = boundaries[j][1]
 
-                # Take larger coordinates for a rectangle cropping
-                x_min = (x if x < x_min else x_min)
-                x_max = (x if x > x_max else x_max)
-                y_min = (y if y < y_min else y_min)
-                y_max = (y if y > y_max else y_max)
+            # Take larger coordinates for a rectangle cropping
+            x_min = (x if x < x_min else x_min)
+            x_max = (x if x > x_max else x_max)
+            y_min = (y if y < y_min else y_min)
+            y_max = (y if y > y_max else y_max)
 
-            # If the text matched is empty, skip
-            if not lst[i][2]:
-                continue
+        # If the text matched is empty, skip
+        if not lst[i][2]:
+            continue
 
-            # Create cropped file associated
-            cropped = img[y_min:y_max, x_min:x_max]
-            cropped_img_path = cropping_dir+os.sep + \
-                filename[:-4]+"_"+str(name_iterator)+".jpg"
-            cv.imwrite(cropped_img_path, cropped)
+        # Create cropped file associated
+        cropped = img[y_min:y_max, x_min:x_max]
+        cropped_img_path = cropping_dir+os.sep + \
+            filename[:-4].replace(".", "")+"_"+str(name_iterator)+".jpg"
+        cv.imwrite(cropped_img_path, cropped)
 
-            # Create txt file associated
-            with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
-                f.write(lst[i][2])
-            name_iterator += 1
-        logger.debug("Finished cropping " +
-                     str(name_iterator) + " times for "+filename)
+        # Create txt file associated
+        with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
+            f.write(lst[i][2])
+        name_iterator += 1
+    logger.debug("Finished cropping " +
+                 str(name_iterator) + " times for "+filename)
 
     # Update checklist to indicate this crop is done
     with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "r") as file:
@@ -385,7 +417,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
     checklist_path = "tmp"+os.sep+"save"+os.sep+"cropped_checklist.json"
     if not (os.path.exists(checklist_path) or os.path.isfile(checklist_path)):
         # Create new empty checklist is one doesn't exist
-        checklist = set()
+        checklist = list()
         with open(checklist_path, "w") as file:
             ujson.dump(checklist, file)
     else:
