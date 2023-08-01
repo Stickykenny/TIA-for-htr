@@ -7,7 +7,7 @@ import re
 import logging
 logger = logging.getLogger("align_logger")
 
-image_extension = (".jpg", ".png", ".svg", "jpeg")
+image_extension = (".jpg", ".png", ".svg")
 
 
 def fetch_images(directory: str, path: bool, recursive: bool = True) -> list:

@@ -183,12 +183,7 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
 
     # Copy images associated to images_extract_dir
-    logger.info("Fetching all matches of letter with " +
-                str(-1) + " image(s)")
-
-    # -------------------------------------------------------------------
-
-    # Filter out some cote
+    logger.info("Fetching all matches of letter with images")
     letters_fetched = utils_extract.get_letter_with_n_image(
         result_filepath, -1, cotes_associated)
     if len(letters_fetched) == 0:
@@ -200,17 +195,17 @@ if __name__ == "__main__":
 
     # PDF Processing
     logger.info("Retrieving pdfs' content")
-    processing_pdfs(pdf_source, csv_source, letters_fetched,
-                    pdf_extract_dir="tmp"+os.sep+"extract_pdf")
+    # processing_pdfs(pdf_source, csv_source, letters_fetched,
+    #                pdf_extract_dir="tmp"+os.sep+"extract_pdf")
 
     # -------------------------------------------------------------------
 
     # Process images (segment, predict, crop)
     logger.info("Processing images")
-    process_images.process_images(
-        images_extract_dir, crop=False, specific_input=letters_fetched)
+    # process_images.process_images(
+    #    images_extract_dir, crop=False, specific_input=letters_fetched)
 
-# -------------------------------------------------------------------
+    # -------------------------------------------------------------------
 
-# Alignment text-image of cropped part of an image
-align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)
+    # Alignment text-image of cropped part of an image
+    align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)

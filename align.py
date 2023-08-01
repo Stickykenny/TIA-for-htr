@@ -373,6 +373,8 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
 
         # Create cropped file associated
         cropped = img[y_min:y_max, x_min:x_max]
+
+        # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
         cropped_img_path = cropping_dir+os.sep + \
             filename[:-4].replace(".", "")+"_"+str(name_iterator)+".jpg"
         cv.imwrite(cropped_img_path, cropped)
