@@ -7,6 +7,7 @@ from shutil import copy, move
 import csv
 import logging
 import pickle
+import sys
 logger = logging.getLogger("align_logger")
 
 
@@ -18,7 +19,7 @@ def get_column_values(csv_source: str, column: int = 9) -> list:
     Parameters :
         csv_source :
             The path of the csv file
-        column : 
+        column :
             Index of the column to be extracted
 
     Returns :
@@ -36,7 +37,7 @@ def get_letter_with_n_image(file: str, n: int = -1, loaded: dict = dict()) -> di
     Parameters :
         file :
             The path of the file containing a dict
-        n : 
+        n :
             The sound the animal makes
         loaded :
             The dictionnary of {cote:[images]}, overwrite the file parameter
@@ -72,7 +73,7 @@ def __copy_file(filepath: str, dir_target: str, file_rename: str = "") -> None:
     Parameters :
         filename :
             The path of the file
-        dir_target : 
+        dir_target :
             The path of the output directory
         file_rename :
             The new name for the copied file
@@ -176,12 +177,18 @@ def move_files_to_parent_directory(parent_folder: str) -> None:
         None
     """
 
-    for foldername, subfolders, filenames in os.walk(parent_folder):
+    for foldername, subfolders, filenames in list(os.walk(parent_folder))[1:]:
         for filename in filenames:
             filepath = foldername+os.sep+filename
             destination_path = os.sep.join(
                 foldername.split(os.sep)[:-1])+os.sep+filename
             move(filepath, destination_path)
+
+    # Remove empty folders
+    for folder in list(os.walk(parent_folder)):
+        if not folder[2]:
+            os.rmdir(folder[0])
+            print("rm "+folder[0])
 
 
 def check_exclude_file(file: str, terms_to_exclude: list, case_sensitive: bool = False) -> bool:
@@ -214,8 +221,36 @@ def check_exclude_file(file: str, terms_to_exclude: list, case_sensitive: bool =
     return False
 
 
+def check_pairs(parent_folder: str) -> bool:
+    """
+    Inside a folder, will check if every pairs of text-image is present
+    Print all image files missing transcription
+
+    Parameters :
+        parent_folder:
+            Path to the directory to check
+
+    Returns :
+        True if every pairs of text-image is present
+    """
+    dir = list(os.walk(parent_folder))[0]
+    files = set(dir[2])
+    for filename in files:
+        if filename.endswith(".jpg"):
+            if filename[:-4]+".gt.txt" not in files:
+                print(filename)
+
+
 if __name__ == "__main__":
 
-    """root_folder = "test/kraken_train/set3"
-    move_files_to_parent_directory(root_folder)"""
+    # Utility function that will move out all files from their respective folder
+    # It will also print all files missing their transcription file ".gt.txt"
+    if len(sys.argv) > 1:
+        root_folder = sys.argv[1]
+        if not os.path.exists(root_folder):
+            pass
+        move_files_to_parent_directory(root_folder)
+        check_pairs(root_folder)
     pass
+# Example
+# python3 utils_extract.py ./test/kraken_train/set4/
