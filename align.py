@@ -186,14 +186,24 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
 
     # Threshold check, to not extend too much
     if threshold >= 0:
-        if lower_bound - new_lower >= threshold:
-            # should not complete more than threshold characters
-            new_lower = lower_bound
-        if new_upper - upper_bound >= threshold:
-            # should not complete more than threshold characters
-            new_upper = upper_bound
+        # should not complete more than threshold number of characters
+        # if so, remove the incomplete word
 
-    return corpus[new_lower:new_upper]
+        if lower_bound - new_lower >= threshold:
+            new_lower = lower_bound
+            character = corpus[new_lower]
+            while character not in word_separator:
+                new_lower += 1
+                character = corpus[new_lower]
+
+        if new_upper - upper_bound >= threshold:
+            new_upper = upper_bound
+            character = corpus[new_upper]
+            while character not in word_separator:
+                new_upper -= 1
+                character = corpus[new_upper]
+
+    return corpus[new_lower+1:new_upper]
 
 
 def check_dist_acceptance(x: int, dist: int):
@@ -253,7 +263,8 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
         index = np.argmin(scores)
 
         # Complete words
-        text_complete = complete_word(text, index, index+len(pattern))
+        text_complete = complete_word(
+            text, index, index+len(pattern), threshold=3)
 
         if not pattern or pattern.isspace():
             # Skip empty ocr/pattern
@@ -279,6 +290,7 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
             if printing:
                 logger.debug("For : "+str(pattern)+" | >> dist score : " +
                              str(scores[index]/len(pattern)) + "\t\t\t at index : "+str(index))
+                logger.debug("\t "+text[index:index+len(pattern)])
                 logger.debug("\t "+text_complete)
                 logger.debug("WER : "+str(wer) +
                              ", CER : "+str(cer))
@@ -386,6 +398,10 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
     logger.debug("Finished cropping " +
                  str(name_iterator) + " times for "+filename)
 
+    # Remove directory if no alignment was made
+    if name_iterator == 0:
+        os.rmdir(cropping_dir)
+
     # Update checklist to indicate this crop is done
     with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "r") as file:
         checklist = ujson.load(file)
@@ -472,6 +488,11 @@ def apply_align(count: int, filename: str, filepath: str, checklist: set = None)
 
     # Check if image was already cropped and aligned, then no need to align
     if checklist and ("tmp"+os.sep+"cropped_match"+os.sep + filename) in checklist:
+        return count
+
+    # Skip specific images that do not possess MDV's writing
+    filename_lower = filename.lower()
+    if "cd" in filename_lower or "copie" in filename_lower or "cp" in filename_lower:
         return count
 
     logger.info("Align " + filepath)
