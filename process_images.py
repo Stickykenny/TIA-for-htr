@@ -53,7 +53,6 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
     Returns :
         None
     """
-
     # Create output directories
     os.makedirs("tmp"+os.sep+"save"+os.sep+"segment", exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"ocr_save", exist_ok=True)
@@ -72,16 +71,9 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
              # skip non-image file
                 logger.debug("skipped this non-image file : "+filename)
                 continue
-
             # Normalize filename to retrieve their cote
             for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
                 file_cote = cote_in_name.replace(" ", "")
-
-                # Skip specific cotes
-                if not specific_input or file_cote not in specific_input.keys():
-                 # logger.debug("Skipped "+filename +
-                 #             " in directory, because not in letter fetched")
-                    continue
 
                 filepath = dirpath+os.sep+filename
                 im = Image.open(filepath)

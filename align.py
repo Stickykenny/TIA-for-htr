@@ -232,7 +232,7 @@ def check_dist_acceptance(x: int, dist: int):
 
 
 @timeit
-def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
+def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
     """
     Find the best alignment for each pattern
 
@@ -268,6 +268,7 @@ def align_patterns(patterns: str, text: str, printing: bool = True) -> tuple:
 
         if not pattern or pattern.isspace():
             # Skip empty ocr/pattern
+            pattern_index += 1
             continue
 
         # Get Word Error Rate and Character Error Rate
@@ -330,13 +331,15 @@ def get_usable_alignments(associations: dict, indexes: list) -> tuple:
     return lst, index_used
 
 
-def align_cropped(lst: list, filepath: str, checklist: set) -> None:
+def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> None:
     """
     For each alignment, create the pair text-image
 
     Parameters:
         lst:
             A list of curated [pattern, pattern_index, text_matched, distance_score]
+        indexes :
+            List of indexes of every pattern in the original ocr prediction
         filepath:
             path to the original image
         checklist:
@@ -345,7 +348,6 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
     Returns:
         None
     """
-
     filename = filepath.split(os.sep)[-1]
 
     # Fetch position of segmented pattern from pickled save of an ocr_record
@@ -357,14 +359,12 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
     cropping_dir = "tmp"+os.sep+"cropped_match"+os.sep+filename
     os.makedirs(cropping_dir, exist_ok=True)
 
-    # Check if cropped are already done
-    files_cropping_dir = [file for file in os.walk(cropping_dir)][0][2]
-
     # Align text-image for crop
     img = cv.imread(filepath, cv.IMREAD_COLOR)
     name_iterator = 0
 
     for i in range(len(lst)):
+
         # Crop the image
         boundaries = predictions[lst[i][1]].line
         x_min = x_max = boundaries[0][0]
@@ -384,6 +384,8 @@ def align_cropped(lst: list, filepath: str, checklist: set) -> None:
             continue
 
         # Create cropped file associated
+        # print("cropping tihs")
+        # print(predictions[lst[i][1]].prediction)
         cropped = img[y_min:y_max, x_min:x_max]
 
         # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
@@ -452,12 +454,12 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                 filepath = dirpath+os.sep+filename
 
                 # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
-                try:
-                    count = apply_align(
-                        count, filename, filepath, checklist)
-                except:
-                    logger.warning(
-                        "Error trying to align this file : "+filepath)
+                # try:
+                count = apply_align(
+                    count, filename, filepath, checklist)
+                # except:
+                #    logger.warning(
+                #        "Error trying to align this file : "+filepath)
 
     else:
         # Process only specified images
@@ -512,7 +514,7 @@ def apply_align(count: int, filename: str, filepath: str, checklist: set = None)
         associations, indexes)
 
     # Crop and produce every pair of text-image
-    align_cropped(lst_alignments_usable, filepath, checklist)
+    align_cropped(lst_alignments_usable, index_used,  filepath, checklist)
 
     count += 1
     logger.debug("Cropped a total of "+str(count)+" images")

@@ -5,19 +5,21 @@ usage : main.py [set_number]
 set_number : Specify the group to be processed, with n the number of image per autographe
 """
 
+import logging
+import monitoring
+from hashlib import sha256
+import pickle
+from shutil import copy as shutilcopy
+from time import time
+import os
+import align
+import process_images
 import sys
 import retrieve_match
 import utils_extract
+import preprocess_image
 import pdf_text_extract
-import process_images
-import align
-import os
-from time import time
-from shutil import copy as shutilcopy
-import pickle
-from hashlib import sha256
-import monitoring
-import logging
+
 logger = logging.getLogger("align_logger")
 
 
@@ -98,11 +100,11 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
 
 def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf", c1: int = 4, c2: int = 9) -> None:
     """
-    For all letters specified in letters_fetched, extract the text of the pdf associated into pdf_extract_dir if present in pdf_source 
+    For all letters specified in letters_fetched, extract the text of the pdf associated into pdf_extract_dir if present in pdf_source
 
     Parameters :
         pdf_source :
-            Path of the folder where all the pdfs are located 
+            Path of the folder where all the pdfs are located
         csv_source :
             Path of the csv file containig the information for association
         letters_fetched :
@@ -146,7 +148,7 @@ if __name__ == "__main__":
     # Define files and directory location
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     pdf_source = 'MDV-site-Xavier-Lang'
-    image_dir = 'Images'
+    image_dir = 'images'
     images_extract_dir = "tmp"+os.sep+"extract_image"
     txt_extract_dir = "tmp"+os.sep+"extract_txt"
 
@@ -193,19 +195,30 @@ if __name__ == "__main__":
     utils_extract.batch_extract_copy(
         letters_fetched, output_dir=images_extract_dir)
 
+    # -------------------------------------------------------------------
+
+    # Pre-process image files
+
+    # Split double pages into 2 single pages
+    # TODO
+    # preprocess_image.batch_preprocess(images_extract_dir)
+
+    # -------------------------------------------------------------------
+
     # PDF Processing
+    # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
-    # processing_pdfs(pdf_source, csv_source, letters_fetched,
-    #                pdf_extract_dir="tmp"+os.sep+"extract_pdf")
+    processing_pdfs(pdf_source, csv_source, letters_fetched,
+                    pdf_extract_dir="tmp"+os.sep+"extract_pdf")
 
     # -------------------------------------------------------------------
 
     # Process images (segment, predict, crop)
     logger.info("Processing images")
-    # process_images.process_images(
-    #    images_extract_dir, crop=False, specific_input=letters_fetched)
+    process_images.process_images(
+        images_extract_dir, crop=False)
 
     # -------------------------------------------------------------------
 
     # Alignment text-image of cropped part of an image
-    align.batch_align_crop(images_extract_dir, specific_input=letters_fetched)
+    align.batch_align_crop(images_extract_dir)
