@@ -91,8 +91,14 @@ def get_matches(cotes: dict, images_files: list) -> tuple:
     cotes_availables = {}
 
     # In a sorted list, we fetch filename
-    files = sorted([i for i in images_files if i.split(
-        os.sep)[-1].lower().startswith("ms")])
+    for i in images_files:
+        filename_lower = i.split(os.sep)[-1].lower()
+        if filename_lower.startswith("ms"):
+            if "cd" not in filename_lower and "copie" not in filename_lower and "cp" not in filename_lower:
+                # filename with "cd", "copie", "cp" do not possess MDV's writing
+                files.append(i)
+    files = sorted(files)
+
     current_size = len(files)
     i = 0
 

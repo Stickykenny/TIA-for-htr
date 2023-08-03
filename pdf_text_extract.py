@@ -26,7 +26,7 @@ def extract_pdf_text(path: str) -> str:
     if path.split(".")[-1] != "pdf":
         raise ValueError("File introduced isn't a pdf")
 
-    with open(path, 'rb', encoding='UTF-8', errors="ignore") as f:
+    with open(path, 'rb') as f:
         pdf = fitz.open(f)
         text = ""
         for page in pdf:

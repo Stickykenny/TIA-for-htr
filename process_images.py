@@ -71,56 +71,53 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
              # skip non-image file
                 logger.debug("skipped this non-image file : "+filename)
                 continue
-            # Normalize filename to retrieve their cote
-            for cote_in_name in re.findall(r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", filename):
-                file_cote = cote_in_name.replace(" ", "")
 
-                filepath = dirpath+os.sep+filename
-                im = Image.open(filepath)
+            filepath = dirpath+os.sep+filename
+            im = Image.open(filepath)
 
-                # Segmentation & Prediction
+            # Segmentation & Prediction
 
-                predict_backup = "tmp"+os.sep+"save"+os.sep + \
-                    "ocr_save"+os.sep+filename+'_ocr.pickle'
-                segment_save = "tmp"+os.sep+"save"+os.sep + \
-                    "segment"+os.sep+filename+'_segment.json'
+            predict_backup = "tmp"+os.sep+"save"+os.sep + \
+                "ocr_save"+os.sep+filename+'_ocr.pickle'
+            segment_save = "tmp"+os.sep+"save"+os.sep + \
+                "segment"+os.sep+filename+'_segment.json'
 
-                if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
-                    # If the ocr result/predict_backup already exists, then there is no need to process the associated image
-                    continue
+            if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
+                # If the ocr result/predict_backup already exists, then there is no need to process the associated image
+                continue
 
+            else:
+                logger.info("Processing : "+filepath)
+
+                # Segmentation
+                if os.path.exists(segment_save) and os.path.isfile(segment_save):
+                    # If the segment_save already exists
+                    # Load saved result to save time
+                    logger.debug(
+                        "Loading previous segmentation result "+segment_save)
+                    with open(segment_save, 'r', encoding='UTF-8', errors="ignore") as file:
+                        baseline_seg = ujson.load(file)
                 else:
-                    logger.info("Processing : "+filepath)
+                    logger.debug("Starting segmentation")
+                    baseline_seg = kraken_segment(im)
+                    with open(segment_save, 'w', encoding='UTF-8', errors="ignore") as file:
+                        ujson.dump(baseline_seg, file, indent=4)
+                    segment_count += 1
 
-                    # Segmentation
-                    if os.path.exists(segment_save) and os.path.isfile(segment_save):
-                        # If the segment_save already exists
-                        # Load saved result to save time
-                        logger.debug(
-                            "Loading previous segmentation result "+segment_save)
-                        with open(segment_save, 'rb', encoding='UTF-8', errors="ignore") as file:
-                            baseline_seg = ujson.load(file)
-                    else:
-                        logger.debug("Starting segmentation")
-                        baseline_seg = kraken_segment(im)
-                        with open(segment_save, 'w', encoding='UTF-8', errors="ignore") as file:
-                            ujson.dump(baseline_seg, file, indent=4)
-                        segment_count += 1
+                # Prediction/OCR
+                logger.debug("Starting prediction")
+                predictions = ocr_img(model, im, baseline_seg, filename)
+                ocr_count += 1
 
-                    # Prediction/OCR
-                    logger.debug("Starting prediction")
-                    predictions = ocr_img(model, im, baseline_seg, filename)
-                    ocr_count += 1
+                # Draw segmentation on a copy of the original image
+                # and if crop is True, also produce the cropped segmentation
+                draw_segmentation(baseline_seg, filepath,
+                                  predictions, crop)
 
-                    # Draw segmentation on a copy of the original image
-                    # and if crop is True, also produce the cropped segmentation
-                    draw_segmentation(baseline_seg, filepath,
-                                      predictions, crop)
-
-                nb_img_processed += 1
-                im.close()
-                logger.debug("Done with "+str(nb_img_processed)+" images, a total of " + str(segment_count) +
-                             " segmentation and " + str(ocr_count) + " ocr were done")
+            nb_img_processed += 1
+            im.close()
+            logger.debug("Done with "+str(nb_img_processed)+" images, a total of " + str(segment_count) +
+                         " segmentation and " + str(ocr_count) + " ocr were done")
 
 
 @timeit

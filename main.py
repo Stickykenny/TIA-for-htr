@@ -200,8 +200,7 @@ if __name__ == "__main__":
     # Pre-process image files
 
     # Split double pages into 2 single pages
-    # TODO
-    # preprocess_image.batch_preprocess(images_extract_dir)
+    preprocess_image.batch_preprocess(images_extract_dir)
 
     # -------------------------------------------------------------------
 
@@ -215,8 +214,7 @@ if __name__ == "__main__":
 
     # Process images (segment, predict, crop)
     logger.info("Processing images")
-    process_images.process_images(
-        images_extract_dir, crop=False)
+    process_images.process_images(images_extract_dir, crop=False)
 
     # -------------------------------------------------------------------
 

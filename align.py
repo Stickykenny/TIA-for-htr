@@ -384,8 +384,6 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
             continue
 
         # Create cropped file associated
-        # print("cropping tihs")
-        # print(predictions[lst[i][1]].prediction)
         cropped = img[y_min:y_max, x_min:x_max]
 
         # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
@@ -454,12 +452,8 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                 filepath = dirpath+os.sep+filename
 
                 # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
-                # try:
                 count = apply_align(
                     count, filename, filepath, checklist)
-                # except:
-                #    logger.warning(
-                #        "Error trying to align this file : "+filepath)
 
     else:
         # Process only specified images
