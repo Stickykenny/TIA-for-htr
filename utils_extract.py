@@ -25,7 +25,7 @@ def get_column_values(csv_source: str, column: int = 9) -> list:
     Returns :
         List of all values in selected column in the csv file
     """
-    with open(csv_source, newline='') as inputfile:
+    with open(csv_source, newline='', encoding='UTF-8', errors="ignore") as inputfile:
         return [row[column] for row in csv.reader(inputfile) if row[column] != ""]
 
 
@@ -111,13 +111,14 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
         None
     """
     os.makedirs(output_dir, exist_ok=True)
-    for item in target.items():
-        for image in [img for img in item[1]]:
+    for images in target.values():
+        for image in images:
             # For each images in the dictionnary's values, extract them to the specified folder
-            if os.path.exists(output_dir+os.sep+image):
+            if os.path.exists(output_dir+os.sep+image) or os.path.exists(output_dir+os.sep+image[:-4]+"_left.jpg"):
                 # do not copy if image already extracted
                 continue
-            __copy_file(image, output_dir)
+            copy(image, output_dir)
+            # __copy_file(image, output_dir)
     logger.debug(
         "Extracted/copy all target images from dictionnary into "+output_dir)
 
@@ -142,7 +143,7 @@ def extract_column_from_csv(csv_source: str, c1: int, c2: int = -1, list_to_comp
     """
     list_to_compare = sorted(list_to_compare)
     result = {}
-    with open(csv_source, newline='') as inputfile:
+    with open(csv_source, newline='', encoding='UTF-8', errors="ignore") as inputfile:
 
         # Check columns are valid and fetched in a sorted list the data of at column c1 where column c2 valeus are in list_to_compare
         if c1 >= 0 and c2 >= 0:

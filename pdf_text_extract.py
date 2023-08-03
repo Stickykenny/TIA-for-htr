@@ -26,7 +26,7 @@ def extract_pdf_text(path: str) -> str:
     if path.split(".")[-1] != "pdf":
         raise ValueError("File introduced isn't a pdf")
 
-    with open(path, 'rb') as f:
+    with open(path, 'rb', encoding='UTF-8', errors="ignore") as f:
         pdf = fitz.open(f)
         text = ""
         for page in pdf:
@@ -66,7 +66,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
 
     if regroup:
         # Regroup all texts in one file for mass process
-        with open(output_file, 'w') as new_file:
+        with open(output_file, 'w', encoding='UTF-8', errors="ignore") as new_file:
             # textarea_maxlength = 524288
             for file in pdf_files:
                 if file.split(".")[-1] != "pdf":
@@ -83,7 +83,7 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, output_file: s
             if file.split(".")[-1] != "pdf":
                 break
             new_filename = file[:-3]+"gt.txt"
-            with open(output_folder+os.sep+new_filename, 'w') as new_file:
+            with open(output_folder+os.sep+new_filename, 'w', encoding='UTF-8', errors="ignore") as new_file:
                 new_file.write(extract_pdf_text(path_pdfs_dir+os.sep+file))
         logger.info("Check "+os.getcwd()+os.sep+output_folder+os.sep)
 

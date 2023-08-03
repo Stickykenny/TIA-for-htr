@@ -98,12 +98,12 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
                         # Load saved result to save time
                         logger.debug(
                             "Loading previous segmentation result "+segment_save)
-                        with open(segment_save, 'rb') as file:
+                        with open(segment_save, 'rb', encoding='UTF-8', errors="ignore") as file:
                             baseline_seg = ujson.load(file)
                     else:
                         logger.debug("Starting segmentation")
                         baseline_seg = kraken_segment(im)
-                        with open(segment_save, 'w') as file:
+                        with open(segment_save, 'w', encoding='UTF-8', errors="ignore") as file:
                             ujson.dump(baseline_seg, file, indent=4)
                         segment_count += 1
 
@@ -153,7 +153,7 @@ def ocr_img(model: models.TorchSeqRecognizer, im: Image, baseline_seg: dict,  fi
 
     # Also produce a txt file of the result from the prediction
     ocr_filepath = ocr_dir+os.sep+filename[:-4]+'_ocr.txt'
-    with open(ocr_filepath, 'w') as f:
+    with open(ocr_filepath, 'w', encoding='UTF-8', errors="ignore") as f:
         for record in predictions:
             f.write(record.prediction+"\n")
         logger.info("Created "+ocr_filepath)
@@ -228,7 +228,7 @@ def draw_segmentation(json_data: str, filepath: str, predictions: str, crop=Fals
                 cropped = img[y_min:y_max, x_min:x_max].copy()
                 cv.imwrite(cropped_img_path, cropped)
 
-                with open(cropped_img_path[:-4]+'_ocr.txt', 'w') as f:
+                with open(cropped_img_path[:-4]+'_ocr.txt', 'w', encoding='UTF-8', errors="ignore") as f:
                     f.write(predictions[name_iterator-1].prediction+"\n")
                 logger.debug("Created crop :"+cropped_img_path +
                              " with text : "+predictions[name_iterator-1].prediction)

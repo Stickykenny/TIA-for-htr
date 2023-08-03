@@ -81,7 +81,7 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
 
     # Make a save of matches understandable by humans
     last_saved = "tmp"+os.sep+"save"+os.sep+"last_matches.txt"
-    with open(last_saved, 'w') as f:
+    with open(last_saved, 'w', encoding='UTF-8', errors="ignore") as f:
         for i in cotes_associated.items():
             f.write(str(i[0])+":"+str(i[1])+"\n")
 

@@ -137,13 +137,13 @@ def txt_compare_open(image_filename: str) -> tuple:
         os.sep+image_filename[:-4]+"_ocr.txt"
 
     # Retrieve the manual transcription without tab and newline
-    with open(txt_manual_file, newline='') as inputfile:
+    with open(txt_manual_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
         txt_manual = inputfile.readlines()
         txt_manual.pop()  # Remove last line which is autographe reference
         txt_manual = ''.join(txt_manual).replace('\t', '').replace('\n', '')
 
     # Retrieve the ocr prediction into a list of each segmented part
-    with open(txt_ocr_file, newline='') as inputfile:
+    with open(txt_ocr_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
         txt_ocr = inputfile.readlines()
         txt_ocr = [txt.replace('\t', '').replace('\n', '') for txt in txt_ocr]
 
@@ -394,7 +394,7 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
         cv.imwrite(cropped_img_path, cropped)
 
         # Create txt file associated
-        with open(cropped_img_path[:-4]+'.gt.txt', 'w') as f:
+        with open(cropped_img_path[:-4]+'.gt.txt', 'w', encoding='UTF-8', errors="ignore") as f:
             f.write(lst[i][2])
         name_iterator += 1
     logger.debug("Finished cropping " +
@@ -405,10 +405,10 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
         os.rmdir(cropping_dir)
 
     # Update checklist to indicate this crop is done
-    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "r") as file:
+    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "r", encoding='UTF-8', errors="ignore") as file:
         checklist = ujson.load(file)
         checklist.append(cropping_dir)
-    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "w") as file:
+    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "w", encoding='UTF-8', errors="ignore") as file:
         ujson.dump(checklist, file, indent=4)
 
     logger.debug("Added "+cropping_dir + " to the checklist of cropped image")
@@ -438,10 +438,10 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
     if not (os.path.exists(checklist_path) or os.path.isfile(checklist_path)):
         # Create new empty checklist is one doesn't exist
         checklist = list()
-        with open(checklist_path, "w") as file:
+        with open(checklist_path, "w", encoding='UTF-8', errors="ignore") as file:
             ujson.dump(checklist, file)
     else:
-        with open(checklist_path, "r") as file:
+        with open(checklist_path, "r", encoding='UTF-8', errors="ignore") as file:
             checklist = ujson.load(file)
 
     # Verify checklist folder is still correct
