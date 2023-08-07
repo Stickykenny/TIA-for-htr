@@ -13,7 +13,7 @@ import re
 import ujson
 import logging
 from monitoring import timeit
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 
 # Default model used from https://zenodo.org/record/6657809
@@ -193,11 +193,11 @@ def draw_segmentation(json_data: str, filepath: str, predictions: str, crop=Fals
     # For each segmented part found
     for line in json_data["lines"]:
 
-        # Draw the baseline of each segmented parts
+        """# Draw the baseline of each segmented parts
         baselines = line["baseline"]
         for i in range(1, len(baselines)):
             img = cv.line(img, baselines[i-1],
-                          baselines[i], (0, 0, 255), 5)
+                          baselines[i], (0, 0, 255), 5)"""
 
         # Draw the Boundaries of each segmented parts
         boundaries = line["boundary"]

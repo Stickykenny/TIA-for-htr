@@ -20,7 +20,7 @@ import utils_extract
 import preprocess_image
 import pdf_text_extract
 
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 
 def retriever(cotes: dict, image_dir: str, output: str) -> dict:
@@ -197,6 +197,7 @@ if __name__ == "__main__":
 
     # -------------------------------------------------------------------
 
+    logger.info("Pre-processing images ...")
     # Pre-process image files
 
     # Split double pages into 2 single pages

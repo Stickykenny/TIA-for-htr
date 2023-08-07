@@ -8,7 +8,7 @@ import csv
 import logging
 import pickle
 import sys
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 
 def get_column_values(csv_source: str, column: int = 9) -> list:

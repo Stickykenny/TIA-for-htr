@@ -6,7 +6,7 @@ import time
 import logging
 from datetime import datetime
 import os
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 
 def setup_logger():

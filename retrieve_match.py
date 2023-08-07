@@ -5,7 +5,7 @@ retrieve_match.py: Contains functions for the task of fetching the usable data
 import os
 import re
 import logging
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 image_extension = (".jpg", ".png", ".svg")
 

@@ -10,7 +10,7 @@ import re
 from monitoring import timeit
 import ujson
 import logging
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 
 def levenshtein_dist(s1: str, s2: str) -> float:
@@ -437,7 +437,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
         # Create new empty checklist is one doesn't exist
         checklist = list()
         with open(checklist_path, "w", encoding='UTF-8', errors="ignore") as file:
-            ujson.dump(checklist, file)
+            ujson.dump(checklist, file, indent=4)
     else:
         with open(checklist_path, "r", encoding='UTF-8', errors="ignore") as file:
             checklist = ujson.load(file)

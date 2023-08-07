@@ -7,7 +7,7 @@ import os
 import fitz  # import PyMuPdf better than PyPDF due to spaces appearing in words
 import logging
 from monitoring import timeit
-logger = logging.getLogger("align_logger")
+logger = logging.getLogger("TIA_logger")
 
 
 def extract_pdf_text(path: str) -> str:
