@@ -7,7 +7,7 @@ import re
 import logging
 logger = logging.getLogger("TIA_logger")
 
-image_extension = (".jpg", ".png", ".svg")
+image_extension = (".jpg", ".png")
 
 
 def fetch_images(directory: str, path: bool, recursive: bool = True) -> list:
@@ -89,6 +89,7 @@ def get_matches(cotes: dict, images_files: list) -> tuple:
     """
     count = 0
     cotes_availables = {}
+    files = []
 
     # In a sorted list, we fetch filename
     for i in images_files:

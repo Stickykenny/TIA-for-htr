@@ -50,8 +50,8 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
     cotes_associated = dict()
 
     # For each folder inside
-    for dir in next(os.walk(image_dir))[1]:
-        path_images_dir = image_dir+os.sep+dir
+    for dir, subfolder, files in os.walk(image_dir):
+        path_images_dir = dir
 
         # List all images in current directory
         images_files = retrieve_match.fetch_images(path_images_dir, path)
