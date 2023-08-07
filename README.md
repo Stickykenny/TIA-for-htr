@@ -16,9 +16,19 @@ The script will require to install multiple python library, they can be installe
 
 `pip install -r requirements.txt`
 
+kraken will install version 1.2.2 of scikit-learn but it is not supported, due to this issue, scikit-learn need to be re-installed/downgraded with a specific version after
+
+`pip install scikit-learn==1.1.2`
+
 # Usage
 
+```
+
 `python3 main.py`
+`python3 utils_extract path_images_cropped`
+`ketos -vv train .... `
+
+```
 
 # How it works
 
@@ -28,28 +38,40 @@ The script will require to install multiple python library, they can be installe
 
 2. ( In the case of the MDV database, the transcription were in pdf file with filename of dates, so additionnal processing was needed to fetch the right one and rename it)
 
-3. With kraken, the selected images are segmented and ocr-ed to obtain a rough result that will be aligned with the actual transcription
+3. Using kraken, the selected images are segmented and ocr-ed to obtain a rough result that will be aligned with the actual transcription
 
 4. Using the ocr result, we create pairs of text-image for each segmented parts of the image associated with their correct transcription
 
+5. Result produced tmp/cropped_image/\*/ will need to be regrouped into their parent folder using `python3 utils_extract.py tmp/cropped_image/`
+
 ### Saving Checkpoints
 
-Some of these processes require some times, so to avoid wasting time, saves are created at completition for reusability.
+Some of these processes require some time, so to avoid wasting time, saves are created at completition for re-usability.
 
-( Processes concerned are : the matching of usable image, the segmentation, the ocr, the alignment and the cropping )
+( Processes concerned are : the matching of usable image,the double page splitting, the segmentation, the ocr, the alignment and the cropping )
 
 ### How to train a model
 
-To train a model using kraken/ketos it will be necessarry to regroup all images into a single folder beforehand, and each cropped image must have his transcription in a filename of the same prefix and ending with '.gt.txt'
+To train/fine-tune a model using kraken/ketos it will be necessary to regroup all pairs of image_text into a single folder beforehand, and each cropped image must have his transcription in a filename of the same prefix (prefix meaning the string before the first "." ) and ending with '.gt.txt'
 
-Then the training command can be launched ( see [ketos documentation](https://kraken.re/4.3.0/ketos.html) )
+Then the training command can be launched ( see [ketos documentation](https://kraken.re/4.3.0/ketos.html) ) <br />
+Example of command : `ketos -vv train -i base.mlmodel set4/*.jpg --resize new -p 0.75 -B 16 -f path`
+
+### How do I reset ?
+
+- For everything, delete the folder tmp/
+- For the text retrieval, delete tmp/extract_pdf/ and extract_txt/
+- For the pre-processing, delete tmp/extract_image and tmp/save/split_status.json
+- For the segmentation, delete tmp/save/segment/ and tmp/save/ocr_save/
+- For the OCR, delete tmp/save/ocr_save/
+- For the alignments, delete /tmp/cropped_checklist.json and tmp/cropped_match/
 
 # Project Structure
 
 ```
 ├── images/
 │   └── >>> Contains images in their folder
-├── kraken_models/
+├── models/
 |   └── >>> Contains Kraken model
 ├── logs/
 |   └── >>> Contains logs created each run
@@ -70,7 +92,7 @@ Then the training command can be launched ( see [ketos documentation](https://kr
     ├── save/
     |   └── >>>
     │   ├── match/
-    |   |   └── >>> Contains dictionary of matches cotes-images as a pickle file, the filename is a hash of the result of os.walk(‘./Images/)
+    |   |   └── >>> Contains dictionary of matches cotes-images as a pickle file, the filename is a hash of the result of os.walk(‘./images/)
     │   ├── ocr_save/
     |   |   └── >>> Contains ocr_record data obtained using kraken prediction
     │   └── segment/

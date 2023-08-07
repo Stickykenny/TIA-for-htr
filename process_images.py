@@ -9,7 +9,6 @@ from PIL import Image
 import cv2 as cv
 import os
 import pickle
-import re
 import ujson
 import logging
 from monitoring import timeit
@@ -18,7 +17,7 @@ logger = logging.getLogger("TIA_logger")
 
 # Default model used from https://zenodo.org/record/6657809
 # Credits to Chagué, Alix, Clérice, Thibault (2022) HTR-United - Manu McFrench V1 (Manuscripts of Modern and Contemporaneous French)
-model_path = 'KrakenModel/HTR-United-Manu_McFrench.mlmodel'
+model_path = 'models'+os.sep+'HTR-United-Manu_McFrench.mlmodel'
 model = models.load_any(model_path)
 
 
