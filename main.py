@@ -137,7 +137,7 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
 
     # For all pdf in pdf_extract_dir, extract the text into a file name "{cote.gt.txt}" (.gt.txt is the sufix used in kraken/ketos)
     pdf_text_extract.retrieve_pdfs_text(
-        pdf_extract_dir, output_folder=txt_extract_dir, regroup=False)
+        pdf_extract_dir, output_folder=txt_extract_dir, syllabification_cut=True)
 
 
 if __name__ == "__main__":
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     # PDF Processing
     # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
-    processing_pdfs(pdf_source, csv_source, letters_fetched,
+    processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
                     pdf_extract_dir="tmp"+os.sep+"extract_pdf")
 
     # -------------------------------------------------------------------
@@ -221,3 +221,4 @@ if __name__ == "__main__":
 
     # Alignment text-image of cropped part of an image
     align.batch_align_crop(images_extract_dir)
+    monitoring.generate_compare_html("tmp"+os.sep+"cropped_match")
