@@ -1,13 +1,14 @@
 import os
 import numpy as np
 import cv2 as cv
+from PIL import Image
 from monitoring import timeit
 import ujson
 import logging
 logger = logging.getLogger("TIA_logger")
 
 
-def detect_split(gray_img: np.ndarray, center_dist: int = 0.05, steps: int = 10) -> int:
+def detect_split(gray_img: Image, center_dist: int = 0.05, steps: int = 10) -> int:
     """
     Will try to find the page split by finding the column with the most sudden change (often due to the double page fold)
 
@@ -66,10 +67,15 @@ def split_image(image_filepath: str, split_status_path) -> bool:
         os.remove(image_filepath)
         return False
 
-    img = cv.imread(image_filepath)
-
+    img = Image.open(image_filepath)
     # If height > width, then it is not a double page
     if img.shape[0] > img.shape[1]:
+        double_page = False
+    else:
+        double_page = True
+    img.close()
+
+    if double_page:
 
         # Case : single page
         # Add it to the dictionnary with value of 0
@@ -81,7 +87,7 @@ def split_image(image_filepath: str, split_status_path) -> bool:
         return False
     else:
         # Find the split location
-        gray_img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        gray_img = cv.imread(image_filepath, cv.IMREAD_GRAYSCALE)
         split_x = detect_split(gray_img)
 
         # Left Image
@@ -120,7 +126,6 @@ def batch_preprocess(maindir: str) -> None:
     Returns :
         None
     """
-    # { 0: no need to split, 2 : left split, 3 : right split}
 
     # Using a dictionnary as a checkpoint to know if an image was already processed
     # Each value means a different case
@@ -134,14 +139,20 @@ def batch_preprocess(maindir: str) -> None:
         with open(split_status_path, 'r', encoding='UTF-8', errors="ignore") as f:
             split_status = ujson.load(f)
 
+    # For each image in the extract_img directory
     image_split_count = 0
     for directory, sub, files in os.walk(maindir):
         for image in files:
             image_filepath = os.path.join(directory, image)
 
+            # If the file is not already processed for splitting
             if image_filepath not in split_status:
                 if split_image(image_filepath, split_status_path):
                     logger.debug("Splitted "+image_filepath)
                     image_split_count += 1
+
+            # If the original file splitted is still present, remove it
+            elif split_status[image_filepath] == 1:
+                os.remove(image_filepath)
 
     logger.info("Splitted a total of "+str(image_split_count)+" images")
