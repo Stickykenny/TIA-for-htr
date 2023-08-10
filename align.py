@@ -136,6 +136,8 @@ def txt_compare_open(image_filename: str) -> tuple:
     txt_ocr_file = "tmp"+os.sep+"ocr_result" + \
         os.sep+image_filename[:-4]+"_ocr.txt"
 
+    # We compare using lowercased string, the manual transcription will be lowercased when compared
+
     # Retrieve the manual transcription without tab and newline
     with open(txt_manual_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
         txt_manual = inputfile.readlines()
@@ -145,7 +147,8 @@ def txt_compare_open(image_filename: str) -> tuple:
     # Retrieve the ocr prediction into a list of each segmented part
     with open(txt_ocr_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
         txt_ocr = inputfile.readlines()
-        txt_ocr = [txt.replace('\t', '').replace('\n', '') for txt in txt_ocr]
+        txt_ocr = [txt.replace('\t', '').replace(
+            '\n', '').lower() for txt in txt_ocr]
 
     return txt_manual, txt_ocr
 
@@ -255,11 +258,13 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
 
     # For each pattern found by the ocr
     # 1/ Align them in the original text using hamming distance
+    #  (comppared in lowercase, because the poet tend the mix upper and lower case in writing)
     # 2/ With the best match, complete word if necessary
     for pattern in patterns:
         scores = []
         for i in range(len(text)-len(pattern)):
-            scores.append(hamming_distance(pattern, text[i:i+len(pattern)]))
+            scores.append(hamming_distance(
+                pattern, text[i:i+len(pattern)].lower()))
         index = np.argmin(scores)
 
         # Complete words
@@ -272,7 +277,7 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
             continue
 
         # Get Word Error Rate and Character Error Rate
-        wer, cer = calculate_error_rate(pattern, text_complete)
+        wer, cer = calculate_error_rate(pattern, text_complete.lower())
 
         # Get the minimum between the hamming distance
         # and the CER = Levensthein distance with the text completed
