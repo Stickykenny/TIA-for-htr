@@ -103,9 +103,9 @@ def generate_compare_html(source_dir: str) -> None:
 
         # For every cropping folder
         # Showcase all their text/image alignments in a cropping html page
-        for dir, subfolders, files in sorted(os.walk(source_dir))[1:]:
+        for directory, subfolders, files in sorted(os.walk(source_dir))[1:]:
             image_cropping_preview = previews_path + \
-                os.sep+dir.split(os.sep)[-1]+".html"
+                os.sep+directory.split(os.sep)[-1]+".html"
             with open(image_cropping_preview, 'w', encoding='UTF-8', errors="ignore") as cropping_html:
 
                 # Write the base of the file
@@ -124,9 +124,9 @@ def generate_compare_html(source_dir: str) -> None:
                             </head >
                             <body >''')
                 cropping_html.write('<br><div style="text-align:center;"><button onclick = "toggleVisibility(\'' +
-                                    dir+'\')" > <h1 > '+dir+' </button ></div>')
+                                    directory+'\')" > <h1 > '+directory+' </button ></div>')
                 cropping_html.write(
-                    '<div style="text-align:center;  display:block;" id="'+dir+'">')
+                    '<div style="text-align:center;  display:block;" id="'+directory+'">')
 
                 # Introduce every crop and their text into the html page
                 cropping_count = 0
@@ -135,13 +135,13 @@ def generate_compare_html(source_dir: str) -> None:
                     # Skip non image file, should be jpg, due to previous implementation see align.py
                     if not file.endswith('.jpg'):
                         continue
-                    image_path = dir+os.sep+file
+                    image_path = directory+os.sep+file
                     cropping_html.write('<img style="min-width:500px;max-width:1000px"  src="' + ".."+os.sep + ".."+os.sep +
                                         image_path+'" alt="'+image_path+'" >')
 
                     # Retrieve the text aligned
                     text_filename = ''.join(file.split(".")[:-1])+".gt.txt"
-                    with open(dir+os.sep+text_filename, 'r', encoding='UTF-8', errors="ignore") as text_file:
+                    with open(directory+os.sep+text_filename, 'r', encoding='UTF-8', errors="ignore") as text_file:
                         text_aligned = text_file.readline()
                         cropping_html.write('<p>'+text_aligned+'</p>')
                     cropping_count += 1
@@ -159,11 +159,13 @@ def generate_compare_html(source_dir: str) -> None:
         html_index.write("</ul></body>")
 
 
-def quantify_segment_used(cropped_dir: str, segment_dir: str) -> None:
+def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) -> None:
     """
     Generate an histogram of the distribution of segment usage
 
     Parameters :
+        image_dir :
+            Path to the directory with images
         cropped_dir :
             Path to the directory with the cropping
         segment_dit :
@@ -178,20 +180,30 @@ def quantify_segment_used(cropped_dir: str, segment_dir: str) -> None:
     percents_used = []
     images_data = []
 
-    for dir, subfolders, files in list(os.walk(cropped_dir))[1:]:
-        # Divided by 2, because half of the files are the text transcription
-        cropped_in_dir = len(files)//2
-        path_to_segment_data = os.path.join(
-            segment_dir, dir.replace(cropped_dir, "")+"_segment.json")
-        with open(path_to_segment_data, "r", encoding="UTF-8", errors="ignore") as segment_file:
-            segment_data = ujson.load(segment_file)
+    # For every image in the image_dir find their cropping_dir
+    # Count the number of pairs in this folder to create data
+    for _, _, images in list(os.walk(image_dir)):
+        for image in images:
+            if not os.path.exists(cropped_dir+os.sep+image):
+                cropped_in_dir = 0
+            else:
+                for directory, _, files in (os.walk(cropped_dir+os.sep+image)):
 
-        nb_segments = len(segment_data["lines"])
-        percents_used.append(cropped_in_dir/nb_segments)
+                    # Divided by 2, because half of the files are the text transcription
+                    cropped_in_dir = len(files)//2
 
-        # Saves information : [ Image filedir, percent of segment used , number of cropped aligned, number ignored ]
-        images_data.append(
-            [dir, cropped_in_dir/nb_segments, cropped_in_dir, nb_segments])
+            path_to_segment_data = os.path.join(
+                segment_dir, os.path.relpath(directory,
+                                             cropped_dir)+"_segment.json")
+            with open(path_to_segment_data, "r", encoding="UTF-8", errors="ignore") as segment_file:
+                segment_data = ujson.load(segment_file)
+
+            nb_segments = len(segment_data["lines"])
+            percents_used.append(cropped_in_dir/nb_segments)
+
+            # Saves information : [ Image filedir, percent of segment used , number of cropped aligned, number ignored ]
+            images_data.append(
+                [directory, cropped_in_dir/nb_segments, cropped_in_dir, nb_segments])
 
     # Create histogram
     plt.figure(figsize=(10, 5))
@@ -211,6 +223,6 @@ def quantify_segment_used(cropped_dir: str, segment_dir: str) -> None:
 if __name__ == "__main__":
 
     cropped_dir = "tmp"+os.sep+"cropped_match"
-
+    image_dir = "tmp"+os.sep + "extract_image"
     generate_compare_html(cropped_dir)
-    quantify_segment_used(cropped_dir, 'tmp/save/segment')
+    quantify_segment_used(image_dir, cropped_dir, 'tmp/save/segment')

@@ -234,8 +234,8 @@ def check_pairs(parent_folder: str) -> bool:
     Returns :
         True if every pairs of text-image is present
     """
-    dir = list(os.walk(parent_folder))[0]
-    files = set(dir[2])
+    directory = list(os.walk(parent_folder))[0]
+    files = set(directory[2])
     for filename in files:
         if filename.endswith(".jpg"):
             if filename[:-4]+".gt.txt" not in files:
