@@ -184,10 +184,11 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
     # Count the number of pairs in this folder to create data
     for _, _, images in list(os.walk(image_dir)):
         for image in images:
+            directory = cropped_dir+os.sep+image
             if not os.path.exists(cropped_dir+os.sep+image):
                 cropped_in_dir = 0
             else:
-                for directory, _, files in (os.walk(cropped_dir+os.sep+image)):
+                for _, _, files in os.walk(directory):
 
                     # Divided by 2, because half of the files are the text transcription
                     cropped_in_dir = len(files)//2
@@ -199,6 +200,10 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
                 segment_data = ujson.load(segment_file)
 
             nb_segments = len(segment_data["lines"])
+            if nb_segments == 0:
+                logger.info(
+                    "Ignored image with no segmentation detected : "+directory)
+                continue
             percents_used.append(cropped_in_dir/nb_segments)
 
             # Saves information : [ Image filedir, percent of segment used , number of cropped aligned, number ignored ]
@@ -215,7 +220,7 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
                 "distribution_segment_usage"+date+".jpg")
 
     # Save histogram's data
-    data.append([percents_used, images_data])
+    data.extend([percents_used, images_data])
     with open("tmp"+os.sep+"save"+os.sep+"segment_stats"+os.sep+"distribution_datas"+date+".json", "w", encoding="UTF-8", errors="ignore") as new_json:
         ujson.dump(data, new_json, indent=4)
 
