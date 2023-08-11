@@ -185,6 +185,8 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
     character = corpus[new_upper]
     while character not in word_separator:
         new_upper += 1
+        if new_upper >= len(corpus):
+            break
         character = corpus[new_upper]
 
     # Threshold check, to not extend too much
@@ -290,7 +292,7 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
 
             associations.append([
                 pattern, pattern_index, text_complete, scores[index]])
-            indexes.append(index)
+            indexes.append(pattern_index)
 
             # if True, if will log a trace of every alignment done ( cause a lot of logs )
             if printing:
@@ -353,6 +355,8 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
     Returns:
         None
     """
+
+    print(indexes)
     filename = filepath.split(os.sep)[-1]
 
     # Fetch position of segmented pattern from pickled save of an ocr_record
@@ -362,19 +366,31 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
         predictions = pickle.load(file)
 
     cropping_dir = "tmp"+os.sep+"cropped_match"+os.sep+filename
+    segmented_img_dir = "tmp"+os.sep+"segmented"
+    os.makedirs(segmented_img_dir, exist_ok=True)
     os.makedirs(cropping_dir, exist_ok=True)
 
     # Align text-image for crop
     img = cv.imread(filepath, cv.IMREAD_COLOR)
-    name_iterator = 0
+    img_segmented = img.copy()
+    count_iterator = 0
 
-    for i in range(len(lst)):
+    for i in range(len(predictions)):
 
         # Crop the image
-        boundaries = predictions[lst[i][1]].line
+        boundaries = predictions[i].line
         x_min = x_max = boundaries[0][0]
         y_min = y_max = boundaries[0][1]
         for j in range(1, len(boundaries)):
+
+            # If segment is used, draw it in blue
+            if i in indexes:
+                img_segmented = cv.line(img_segmented, boundaries[j-1],
+                                        boundaries[j], (255, 0, 0, 0.25), 5)
+            else:  # draw it in red
+                img_segmented = cv.line(img_segmented, boundaries[j-1],
+                                        boundaries[j], (0, 0, 255, 0.25), 5)
+
             x = boundaries[j][0]
             y = boundaries[j][1]
 
@@ -385,7 +401,9 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
             y_max = (y if y > y_max else y_max)
 
         # If the text matched is empty, skip
-        if not lst[i][2]:
+        # if not lst[count_iterator][2]:
+        #    continue
+        if i not in indexes:
             continue
 
         # Create cropped file associated
@@ -393,18 +411,22 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
 
         # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
         cropped_img_path = cropping_dir+os.sep + \
-            filename[:-4].replace(".", "")+"_"+str(name_iterator)+".jpg"
+            filename[:-4].replace(".", "")+"_"+str(count_iterator)+".jpg"
         cv.imwrite(cropped_img_path, cropped)
 
         # Create txt file associated
         with open(cropped_img_path[:-4]+'.gt.txt', 'w', encoding='UTF-8', errors="ignore") as f:
-            f.write(lst[i][2])
-        name_iterator += 1
+            f.write(lst[count_iterator][2])
+        count_iterator += 1
     logger.debug("Finished cropping " +
-                 str(name_iterator) + " times for "+filename)
+                 str(count_iterator) + " times for "+filename)
+
+    # Save the original image with segmentation drawn on it
+    cv.imwrite(segmented_img_dir+os.sep +
+               filename[:-4]+"_segmented.jpg", img_segmented)
 
     # Remove directory if no alignment was made
-    if name_iterator == 0:
+    if count_iterator == 0:
         os.rmdir(cropping_dir)
 
     # Update checklist to indicate this crop is done
