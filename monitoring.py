@@ -189,8 +189,11 @@ def quantify_segment_used(cropped_dir: str, segment_dir: str) -> None:
         nb_segments = len(segment_data["lines"])
         percents_used.append(cropped_in_dir/nb_segments)
 
-        images_data.append([dir, cropped_in_dir, nb_segments])
+        # Saves information : [ Image filedir, percent of segment used , number of cropped aligned, number ignored ]
+        images_data.append(
+            [dir, cropped_in_dir/nb_segments, cropped_in_dir, nb_segments])
 
+    # Create histogram
     plt.figure(figsize=(10, 5))
     plt.hist(percents_used, bins=100, orientation='horizontal')
     plt.title('Distribution of segmentation usage in cropping', fontsize=16)
@@ -199,6 +202,7 @@ def quantify_segment_used(cropped_dir: str, segment_dir: str) -> None:
     plt.savefig("tmp"+os.sep+"save"+os.sep + "segment_stats"+os.sep +
                 "distribution_segment_usage"+date+".jpg")
 
+    # Save histogram's data
     data.append([percents_used, images_data])
     with open("tmp"+os.sep+"save"+os.sep+"segment_stats"+os.sep+"distribution_datas"+date+".json", "w", encoding="UTF-8", errors="ignore") as new_json:
         ujson.dump(data, new_json, indent=4)

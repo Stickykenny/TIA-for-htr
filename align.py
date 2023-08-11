@@ -142,7 +142,7 @@ def txt_compare_open(image_filename: str) -> tuple:
     with open(txt_manual_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
         txt_manual = inputfile.readlines()
         txt_manual.pop()  # Remove last line which is autographe reference
-        txt_manual = ''.join(txt_manual).replace('\t', '').replace('\n', '')
+        txt_manual = ''.join(txt_manual).replace('\t', '')
 
     # Retrieve the ocr prediction into a list of each segmented part
     with open(txt_ocr_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
@@ -173,7 +173,7 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
     """
 
     # Will extend upper and lower bound until a word separator if encountered
-    word_separator = [" ", ",", ""]
+    word_separator = [" ", ",", "", "\n"]
 
     new_upper = upper_bound
     new_lower = lower_bound
@@ -199,6 +199,8 @@ def complete_word(corpus: str, lower_bound: int, upper_bound: int, threshold: in
             character = corpus[new_lower]
             while character not in word_separator:
                 new_lower += 1
+                if new_lower >= len(corpus):
+                    break
                 character = corpus[new_lower]
 
         if new_upper - upper_bound >= threshold:
@@ -356,7 +358,6 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
         None
     """
 
-    print(indexes)
     filename = filepath.split(os.sep)[-1]
 
     # Fetch position of segmented pattern from pickled save of an ocr_record
