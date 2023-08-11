@@ -221,4 +221,8 @@ if __name__ == "__main__":
 
     # Alignment text-image of cropped part of an image
     align.batch_align_crop(images_extract_dir)
+
+    # Statistics
     monitoring.generate_compare_html("tmp"+os.sep+"cropped_match")
+    monitoring.quantify_segment_used(
+        "tmp"+os.sep+"cropped_match", 'tmp/save/segment')

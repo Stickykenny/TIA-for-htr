@@ -2,10 +2,12 @@
 monitoring.py: Contains functions for monitoring and logging performance/time
 """
 
+import matplotlib.pyplot as plt
 import time
 import logging
 from datetime import datetime
 import os
+import ujson
 logger = logging.getLogger("TIA_logger")
 
 
@@ -157,8 +159,54 @@ def generate_compare_html(source_dir: str) -> None:
         html_index.write("</ul></body>")
 
 
+def quantify_segment_used(cropped_dir: str, segment_dir: str) -> None:
+    """
+    Generate an histogram of the distribution of segment usage
+
+    Parameters :
+        cropped_dir :
+            Path to the directory with the cropping
+        segment_dit :
+            Path to the directory with the segment data
+    Returns :
+        None
+    """
+    os.makedirs("tmp"+os.sep+"save"+os.sep + "segment_stats", exist_ok=True)
+
+    date = datetime.now().strftime('_%Y_%m_%d_%H_%M')
+    data = []
+    percents_used = []
+    images_data = []
+
+    for dir, subfolders, files in list(os.walk(cropped_dir))[1:]:
+        # Divided by 2, because half of the files are the text transcription
+        cropped_in_dir = len(files)//2
+        path_to_segment_data = os.path.join(
+            segment_dir, dir.replace(cropped_dir, "")+"_segment.json")
+        with open(path_to_segment_data, "r", encoding="UTF-8", errors="ignore") as segment_file:
+            segment_data = ujson.load(segment_file)
+
+        nb_segments = len(segment_data["lines"])
+        percents_used.append(cropped_in_dir/nb_segments)
+
+        images_data.append([dir, cropped_in_dir, nb_segments])
+
+    plt.figure(figsize=(10, 5))
+    plt.hist(percents_used, bins=100, orientation='horizontal')
+    plt.title('Distribution of segmentation usage in cropping', fontsize=16)
+    plt.xlabel('Number of images', fontsize=12)
+    plt.ylabel('Percentage of segments used', fontsize=12)
+    plt.savefig("tmp"+os.sep+"save"+os.sep + "segment_stats"+os.sep +
+                "distribution_segment_usage"+date+".jpg")
+
+    data.append([percents_used, images_data])
+    with open("tmp"+os.sep+"save"+os.sep+"segment_stats"+os.sep+"distribution_datas"+date+".json", "w", encoding="UTF-8", errors="ignore") as new_json:
+        ujson.dump(data, new_json, indent=4)
+
+
 if __name__ == "__main__":
 
     cropped_dir = "tmp"+os.sep+"cropped_match"
 
     generate_compare_html(cropped_dir)
+    quantify_segment_used(cropped_dir, 'tmp/save/segment')
