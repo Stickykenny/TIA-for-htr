@@ -11,6 +11,7 @@ from hashlib import sha256
 import pickle
 from shutil import copy as shutilcopy
 from time import time
+from monitoring import timeit
 import os
 import align
 import process_images
@@ -50,8 +51,8 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
     cotes_associated = dict()
 
     # For each folder inside
-    for dir, subfolder, files in os.walk(image_dir):
-        path_images_dir = dir
+    for directory, subfolder, files in os.walk(image_dir):
+        path_images_dir = directory
 
         # List all images in current directory
         images_files = retrieve_match.fetch_images(path_images_dir, path)
@@ -98,6 +99,7 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
     return cotes_associated
 
 
+@timeit
 def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf", c1: int = 4, c2: int = 9) -> None:
     """
     For all letters specified in letters_fetched, extract the text of the pdf associated into pdf_extract_dir if present in pdf_source
@@ -162,7 +164,7 @@ if __name__ == "__main__":
     os.makedirs(images_extract_dir, exist_ok=True)
     os.makedirs(txt_extract_dir, exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
-
+    """
     # Retrieve from csv every cote in the form of a dictionnary cote:autographe
     autographes = utils_extract.get_column_values(csv_source, column=9)
     cotes = retrieve_match.indexing_autographes(autographes)
@@ -192,30 +194,30 @@ if __name__ == "__main__":
         logger.info("No letter found, exiting program")
         sys.exit()
 
-    utils_extract.batch_extract_copy(
-        letters_fetched, output_dir=images_extract_dir)
-
+    # utils_extract.batch_extract_copy(
+    #    letters_fetched, output_dir=images_extract_dir)
+    """
     # -------------------------------------------------------------------
 
     logger.info("Pre-processing images ...")
     # Pre-process image files
 
     # Split double pages into 2 single pages
-    preprocess_image.batch_preprocess(images_extract_dir)
+    # preprocess_image.batch_preprocess(images_extract_dir)
 
     # -------------------------------------------------------------------
 
     # PDF Processing
     # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
-    processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
-                    pdf_extract_dir="tmp"+os.sep+"extract_pdf")
+    # processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
+    #                pdf_extract_dir="tmp"+os.sep+"extract_pdf")
 
     # -------------------------------------------------------------------
 
     # Process images (segment, predict, crop)
     logger.info("Processing images")
-    process_images.process_images(images_extract_dir, crop=False)
+    # process_images.process_images(images_extract_dir, crop=False)
 
     # -------------------------------------------------------------------
 
@@ -225,4 +227,4 @@ if __name__ == "__main__":
     # Statistics
     monitoring.generate_compare_html("tmp"+os.sep+"cropped_match")
     monitoring.quantify_segment_used(
-        "tmp"+os.sep+"cropped_match", 'tmp/save/segment')
+        images_extract_dir, "tmp"+os.sep+"cropped_match", 'tmp/save/segment')

@@ -7,6 +7,7 @@ import time
 import logging
 from datetime import datetime
 import os
+from PIL import Image
 import ujson
 logger = logging.getLogger("TIA_logger")
 
@@ -182,8 +183,10 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
 
     # For every image in the image_dir find their cropping_dir
     # Count the number of pairs in this folder to create data
-    for _, _, images in list(os.walk(image_dir)):
+    for maindir, _, images in list(os.walk(image_dir)):
+
         for image in images:
+            segment_used = 0
             directory = cropped_dir+os.sep+image
             if not os.path.exists(cropped_dir+os.sep+image):
                 cropped_in_dir = 0
@@ -206,9 +209,29 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
                 continue
             percents_used.append(cropped_in_dir/nb_segments)
 
-            # Saves information : [ Image filedir, percent of segment used , number of cropped aligned, number ignored ]
+            # Get number of segment having a width that is more than 20% of the image's width
+            PIL_image = Image.open(maindir+os.sep+image)
+            image_width = PIL_image.width
+            PIL_image.close()
+
+            for segment in segment_data["lines"]:
+                baseline = segment["baseline"]
+                x_min = x_max = baseline[0][0]
+                for i in range(1, len(baseline)):
+
+                    x = baseline[i][0]
+
+                    # Take larger coordinates for a rectangle cropping
+                    x_min = (x if x < x_min else x_min)
+                    x_max = (x if x > x_max else x_max)
+
+                cropped_width = x_max - x_min
+                if cropped_width > 0.2*image_width:
+                    segment_used += 1
+
+            # Saves information : [ Image filedir, percent of segment used , number of cropped aligned, number total segment, number of cropped_width> 20% image_width ]
             images_data.append(
-                [directory, cropped_in_dir/nb_segments, cropped_in_dir, nb_segments])
+                [directory, cropped_in_dir/nb_segments, cropped_in_dir, nb_segments, segment_used])
 
     # Create histogram
     plt.figure(figsize=(10, 5))
@@ -220,7 +243,8 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
                 "distribution_segment_usage"+date+".jpg")
 
     # Save histogram's data
-    data.extend([percents_used, images_data])
+    data.extend([sorted(percents_used), sorted(
+        images_data, key=lambda x:(x[1], x[4]))])
     with open("tmp"+os.sep+"save"+os.sep+"segment_stats"+os.sep+"distribution_datas"+date+".json", "w", encoding="UTF-8", errors="ignore") as new_json:
         ujson.dump(data, new_json, indent=4)
 

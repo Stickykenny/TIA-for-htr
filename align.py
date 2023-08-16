@@ -402,9 +402,10 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
             y_max = (y if y > y_max else y_max)
 
         # If the text matched is empty, skip
-        # if not lst[count_iterator][2]:
-        #    continue
+        # If the segment width isn't at least 20% of the gtotal image width, skip (mot likely noise)
         if i not in indexes:
+            continue
+        if (x_max-x_min) < 0.2*img.shape[1]:
             continue
 
         # Create cropped file associated
@@ -481,7 +482,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
 
                 # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
                 count = apply_align(
-                    count, filename, filepath, checklist)
+                    count, filename, filepath, len(filenames), checklist)
 
     else:
         # Process only specified images
@@ -492,7 +493,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                     count, filename, filepath, checklist)
 
 
-def apply_align(count: int, filename: str, filepath: str, checklist: set = None) -> int:
+def apply_align(count: int, filename: str, filepath: str, total: int, checklist: set = None) -> int:
     """
     Apply alignment to create pairs of text-images
 
@@ -503,6 +504,8 @@ def apply_align(count: int, filename: str, filepath: str, checklist: set = None)
             Name of the image file
         filepath :
             Path to the image file
+        total : 
+            Total number of alignment (for statistic purpose)
         checklist:
             Set of all images already cropped
 
@@ -519,7 +522,7 @@ def apply_align(count: int, filename: str, filepath: str, checklist: set = None)
     if "cd" in filename_lower or "copie" in filename_lower or "cp" in filename_lower:
         return count
 
-    logger.info("Align " + filepath)
+    logger.info("Align " + filepath + " " + str(count)+"/"+str(total))
     # Fetch the manual transcription and the ocr
     try:
         txt_manual, txt_ocr = txt_compare_open(filename)
