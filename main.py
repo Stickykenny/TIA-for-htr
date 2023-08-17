@@ -164,7 +164,11 @@ if __name__ == "__main__":
     os.makedirs(images_extract_dir, exist_ok=True)
     os.makedirs(txt_extract_dir, exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
-    """
+
+
+    # ----------------------------------------------------
+    # DATA PREPARATION ----------------
+    
     # Retrieve from csv every cote in the form of a dictionnary cote:autographe
     autographes = utils_extract.get_column_values(csv_source, column=9)
     cotes = retrieve_match.indexing_autographes(autographes)
@@ -194,30 +198,33 @@ if __name__ == "__main__":
         logger.info("No letter found, exiting program")
         sys.exit()
 
-    # utils_extract.batch_extract_copy(
-    #    letters_fetched, output_dir=images_extract_dir)
-    """
-    # -------------------------------------------------------------------
-
-    logger.info("Pre-processing images ...")
-    # Pre-process image files
-
-    # Split double pages into 2 single pages
-    # preprocess_image.batch_preprocess(images_extract_dir)
-
+    utils_extract.batch_extract_copy(
+        letters_fetched, output_dir=images_extract_dir)
+    
     # -------------------------------------------------------------------
 
     # PDF Processing
     # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
-    # processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
-    #                pdf_extract_dir="tmp"+os.sep+"extract_pdf")
+    processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
+                   pdf_extract_dir="tmp"+os.sep+"extract_pdf")
+
+
+    # End of DATA PREPARATION ----------------
+    # ----------------------------------------------------
+
+
+    logger.info("Pre-processing images ...")
+    # Pre-process image files
+
+    # Split double pages into 2 single pages
+    preprocess_image.batch_preprocess(images_extract_dir)
 
     # -------------------------------------------------------------------
 
     # Process images (segment, predict, crop)
     logger.info("Processing images")
-    # process_images.process_images(images_extract_dir, crop=False)
+    process_images.process_images(images_extract_dir, crop=False)
 
     # -------------------------------------------------------------------
 
@@ -225,6 +232,7 @@ if __name__ == "__main__":
     align.batch_align_crop(images_extract_dir)
 
     # Statistics
+    logger.info("Starting statistics calculations")
     monitoring.generate_compare_html("tmp"+os.sep+"cropped_match")
     monitoring.quantify_segment_used(
         images_extract_dir, "tmp"+os.sep+"cropped_match", 'tmp/save/segment')
