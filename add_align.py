@@ -1,11 +1,28 @@
 """
 This file launch a webpage to manually align, for the purpose of improving the dataset before training
+
+Usage : add_align.py [number_to_align] [number_to_skip]
+        After manually aligned, move the downloaded json into the manual_align/ and relaunch this file to clean the alignments
+
+Arguments:
+    number_to_align           Number of image to align/ to generate web page
+    number_to_skip            Number of image to skip (i.e. skip the ten first who were already algined).
+
+Exemple of the steps to take:
+    > align.py 10
+    > <Manually align using each generated web page>
+    > <Move the 10 produced/downloaded json into manual_align/>  
+    > align.py 10 (= relaunch the same command )
+    > Now will only remain pairs of text/image and the json
+
+    You can increase the number to your convenience
+
 """
 import os
 import ujson
 from PIL import Image
 import re
-
+import sys
 
 def generate_manual_align_webpage(title: str, images: list, text_ref: str , total:int) -> None:
     """
@@ -40,6 +57,7 @@ def generate_manual_align_webpage(title: str, images: list, text_ref: str , tota
     webpage = webpage.replace("TITLE", title)
     webpage = webpage.replace("IMAGELIST", str(images) )
     webpage = webpage.replace("TOTALCROP", str(total) )
+    webpage = webpage.replace("FULLIMAGE", "tmp"+os.sep+"segmented"+os.sep+title[:-4]+"_segmented.jpg" )
     webpage = webpage.replace("manual_align.css", ".."+os.sep+"ressources"+os.sep+"manual_align.css" )
 
 
@@ -69,6 +87,35 @@ def retrieve_transcription(filename:str) ->str:
         txt_manual = ''.join(txt_manual).replace('\t', '')
     return txt_manual
 
+def curate_alignments(acceptlist:list, filename:str )->None :
+    """
+    Remove cropped image without transcription, and create txt file for the one aligned
+    
+    Parameters:
+        acceptlist : 
+            List of cropped image acceptation
+            [ O/1 , "transcription" ]
+        filename :
+            Name of the image file concerned
+
+    Returns:
+        None 
+    """
+
+    for cropped_dir, subfolders, files in os.walk("manual_align"+os.sep+filename) :
+        for file in files :
+            if file.endswith(".gt.txt") :
+                continue
+            crop_count = int(file.split("_")[-1][:-4])
+            # Remove cropped image with no transcription
+            if acceptlist[crop_count][0] == 0 :
+                os.remove("manual_align"+os.sep+filename+os.sep+file)
+            # Create the text file associated
+            else :
+                with open("manual_align"+os.sep+filename+os.sep+file[:-4]+".gt.txt", 'w', encoding="UTF-8", errors="ignore") as newtxt :
+                    newtxt.write(acceptlist[crop_count][1])
+
+    print("Folder tmp"+os.sep+filename+" is curated.")
 
 def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
     """
@@ -109,25 +156,11 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
         images =[]
 
         # If a list of curated cropped already exist skip
-        acceptList_path = "manual_align"+os.sep+filename[:-4]+".json"
-        if os.path.exists(acceptList_path) :
-            with open(acceptList_path, "r", encoding="UTF-8", errors='ignore') as segment_file:
-                acceptList = ujson.load(segment_file)
-                for cropped_dir, subfolders, files in os.walk("manual_align"+os.sep+filename) :
-                    for file in files :
-                        if file.endswith(".gt.txt") :
-                            continue
-                        crop_count = int(file.split("_")[-1][:-4])
-                        # Remove cropped image with no transcription
-                        if acceptList[crop_count][0] == 0 :
-                            os.remove("manual_align"+os.sep+filename+os.sep+file)
-                        # Create the text file associated
-                        else :
-                            with open("manual_align"+os.sep+filename+os.sep+file[:-4]+".gt.txt", 'w', encoding="UTF-8", errors="ignore") as newtxt :
-                                newtxt.write(acceptList[crop_count][1])
-
-                print("Folder tmp"+os.sep+filename+" is curated.")
-
+        acceptlist_path = "manual_align"+os.sep+filename[:-4]+".json"
+        if os.path.exists(acceptlist_path) :
+            with open(acceptlist_path, "r", encoding="UTF-8", errors='ignore') as segment_file:
+                acceptlist = ujson.load(segment_file)
+                curate_alignments(acceptlist, filename)
         else :
 
             os.makedirs("manual_align"+os.sep+filename, exist_ok=True)
@@ -176,4 +209,15 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
 
 if __name__ == '__main__':
 
-    generate_manual_alignments(1)
+    number_to_align = 10
+    number_to_skip = 0
+    try :
+        if len(sys.argv) > 1 : 
+            number_to_align = int(sys.argv[1])
+            if len(sys.argv) > 2 : 
+                number_to_skip = int(sys.argv[2])
+    except :
+        print(__doc__)
+        sys.exit()
+
+    generate_manual_alignments(number_to_align,number_to_skip)
