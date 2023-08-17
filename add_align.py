@@ -70,7 +70,7 @@ def retrieve_transcription(filename:str) ->str:
     return txt_manual
 
 
-def generate_manual_alignments(number:int=-1) -> None :
+def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
     """
     Will generate n numbers of webpage for manual alignments
     
@@ -85,7 +85,6 @@ def generate_manual_alignments(number:int=-1) -> None :
     # Get last monitoring data
     segment_stats_path = "tmp"+os.sep+"save"+os.sep+"segment_stats"
     segments_path = "tmp"+os.sep+"save"+os.sep+"segment"
-    os.makedirs("manual_alignments",exist_ok=True)
     files = sorted(
         list(next(os.walk(segment_stats_path)))[2])
     # The last saved monitoring json is the last of half the file, due to the half being the histogram images
@@ -93,59 +92,88 @@ def generate_manual_alignments(number:int=-1) -> None :
     with open(segment_stats_path+os.sep+last_json, "r", encoding="UTF-8", errors='ignore') as stats_file:
         segment_stats = ujson.load(stats_file)[1]
 
-    # Skip image that have too few images (=noises detected)
+    # Skip image that have too few images (=noises detected) plus a set number of skip in argument
     skip_count= 0
     while segment_stats[skip_count][4] < 5 and segment_stats[skip_count][1] == 0 :
         skip_count+=1
+    total_skip = skip_count+skip if skip_count+skip < len(segment_stats) else len(segment_stats)
+    segment_stats = segment_stats[total_skip:]
 
     if number > -1 :
-        number = len(segment_stats) if number+skip_count > len(segment_stats) else number+skip_count
-        segment_stats = segment_stats[skip_count:number]
+        number = len(segment_stats) if number+total_skip > len(segment_stats) else number+total_skip
+        segment_stats = segment_stats[total_skip:number]
     print("Look for images up to the number "+str(number))
 
     for cropped_path, usage_ratio, used, total, usable in segment_stats : 
         filename= cropped_path.split(os.sep)[-1]
         images =[]
 
-        img = Image.open("tmp"+os.sep+"extract_image"+os.sep+filename)
-        width = img.width
-        with open(segments_path+os.sep+filename+"_segment.json", "r", encoding="UTF-8", errors='ignore') as segment_file:
-            segments = ujson.load(segment_file)
+        # If a list of curated cropped already exist skip
+        acceptList_path = "manual_align"+os.sep+filename[:-4]+".json"
+        if os.path.exists(acceptList_path) :
+            with open(acceptList_path, "r", encoding="UTF-8", errors='ignore') as segment_file:
+                acceptList = ujson.load(segment_file)
+                for cropped_dir, subfolders, files in os.walk("manual_align"+os.sep+filename) :
+                    for file in files :
+                        if file.endswith(".gt.txt") :
+                            continue
+                        crop_count = int(file.split("_")[-1][:-4])
+                        # Remove cropped image with no transcription
+                        if acceptList[crop_count][0] == 0 :
+                            os.remove("manual_align"+os.sep+filename+os.sep+file)
+                        # Create the text file associated
+                        else :
+                            with open("manual_align"+os.sep+filename+os.sep+file[:-4]+".gt.txt", 'w', encoding="UTF-8", errors="ignore") as newtxt :
+                                newtxt.write(acceptList[crop_count][1])
 
-        # Prepare the cropped images for the manual alignments
-        crop_count = 0
-        for segment in segments["lines"]:
-            boundaries = segment["boundary"]
-            x_min = x_max = boundaries[0][0]
-            y_min = y_max = boundaries[0][1]
-            for i in range(1, len(boundaries)):
+                print("Folder tmp"+os.sep+filename+" is curated.")
 
-                x = boundaries[i][0]
-                y = boundaries[i][1]
+        else :
 
-                # Take larger coordinates for a rectangle cropping
-                x_min = (x if x < x_min else x_min)
-                x_max = (x if x > x_max else x_max)
-                y_min = (y if y < y_min else y_min)
-                y_max = (y if y > y_max else y_max)
+            os.makedirs("manual_align"+os.sep+filename, exist_ok=True)
+            # Load segmentation data
+            img = Image.open("tmp"+os.sep+"extract_image"+os.sep+filename)
+            width = img.width
+            with open(segments_path+os.sep+filename+"_segment.json", "r", encoding="UTF-8", errors='ignore') as segment_file:
+                segments = ujson.load(segment_file)
 
-            cropped = img.crop((x_min, y_min, x_max, y_max))
-            w, h = cropped.size
+            # Prepare the cropped images for the manual alignments
+            crop_count = 0
+            for segment in segments["lines"]:
+                boundaries = segment["boundary"]
+                x_min = x_max = boundaries[0][0]
+                y_min = y_max = boundaries[0][1]
+                for i in range(1, len(boundaries)):
 
-            # Skip images that are too 'small'
-            if w < 0.2*width:
+                    x = boundaries[i][0]
+                    y = boundaries[i][1]
+
+                    # Take larger coordinates for a rectangle cropping
+                    x_min = (x if x < x_min else x_min)
+                    x_max = (x if x > x_max else x_max)
+                    y_min = (y if y < y_min else y_min)
+                    y_max = (y if y > y_max else y_max)
+
+                cropped = img.crop((x_min, y_min, x_max, y_max))
+                w, h = cropped.size
+
+                # Skip images that are too 'small'
+                if w < 0.2*width:
+                    continue
+                cropped_name ="manual_align"+os.sep+filename+os.sep+filename+"_"+str(crop_count)+".jpg" 
+                images.append(cropped_name)
+                cropped.save(cropped_name)
+                crop_count += 1
+
+            # If no crop can be manually aligned skip
+            if crop_count == 0 :
+                os.removedirs("manual_align"+os.sep+filename)
                 continue
-            cropped_name ="manual_align"+os.sep+filename+os.sep+filename+"_"+str(crop_count)+".jpg" 
-            images.append(cropped_name)
-            cropped.save(cropped_name)
-            crop_count += 1
-        img.close()
+            img.close()
 
-        text_ref = retrieve_transcription(filename)
-
-        generate_manual_align_webpage(filename, images, text_ref , usable )
+            text_ref = retrieve_transcription(filename)
+            generate_manual_align_webpage(filename, images, text_ref , usable )
 
 if __name__ == '__main__':
-    print("ok")
 
-    generate_manual_alignments(2)
+    generate_manual_alignments(1)

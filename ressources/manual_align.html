@@ -3,83 +3,116 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>TITLE</title>
+    <title> TITLE </title>
     <link rel="stylesheet" href="manual_align.css">
 </head>
 
 <body>
-    <div id="header"> TITLE</div>
-    <div id="top" style="text-align:center;"><img id='crop'style="min-width:500px;max-width:1000px"
-            src="GameOver.png"
-            alt="Image not shown correctly, try changing browser"></div>
+    <div id="header"> TITLE <div id="countdown"></div>
+    </div>
+    <div id="top" style="text-align:center;"><img id='crop' style="min-width:500px;max-width:1000px" src="GameOver.png"
+            alt="Image not shown correctly, try changing browser" download="dvkns.jpg"></div>
     <div id="bottom" fontsize="18px">
 
         SOURCE_TEXT
 
         <script defer>
-            cropCount = 0;
+            totalCrop = TOTALCROP;
+            const images = IMAGELIST;
+            var filename = "TITLE"
+            filename = filename.substring(0, filename.length - 4);
+
+            const countdown = document.getElementById("countdown");
+            countdown.textContent = "0/" + totalCrop;
             transcriptionCount = 0;
-            const images= IMAGELIST
+            cropCount = 0;
+
+            var acceptList = []
             const img = document.getElementById("crop");
-            img.src  = images[cropCount];
+            img.src = images[cropCount];
             const clickableTexts = document.querySelectorAll('.click_text');
             var startedSelect = false;
 
-            
+
             clickableTexts.forEach(text => {
+                // Left click to set the start of the transcription
                 text.addEventListener('click', () => {
                     reset();
                     text.classList.add("startSelect");
                     startedSelect = true;
-                    
+
                 });
+                // Right click to set the end of the transcription
                 text.addEventListener('contextmenu', () => {
                     text.classList.add("endSelect")
                     if (startedSelect) {
                         const startTag = document.getElementsByClassName('startSelect')[0];
                         const endTag = document.getElementsByClassName('endSelect')[0];
 
-                        // Loop until we reach the endTag
+                        // Loop until we reach the endTag to retrieve all the selected text
                         let textContent = '';
                         let currentNode = startTag.nextSibling;
-                        const div = document.createElement('div');
-                        div.classList.add("used")
                         while (currentNode && (currentNode !== endTag)) {
-                            div.append(currentNode)
                             textContent += currentNode.textContent;
                             currentNode = currentNode.nextSibling;
                         }
                         console.log(textContent)
                         reset()
 
+                        // Set startSelection at the end of the previous selection
+                        text.classList.add("startSelect");
+                        startedSelect = true;
+
                         // Create text file of the text selected
-                        textContent = textContent.replace("_"," ")
-                        //CreateTextFile(textContent, "output.txt")
-                        cropCount +=1
+                        textContent = textContent.replace("_", " ")
+                        DownloadFile(textContent, filename + "_" + cropCount + ".gt.txt", "text/plain;charset=utf-8")
+                        // Update count and the cropped image
+                        cropCount += 1
+                        acceptList.push([1, textContent]) // indicate that this image is used
+                        countdown.textContent = cropCount + "/" + totalCrop
 
                         if (cropCount >= images.length) {
                             img.src = "WIN.png"
+                            acceptList = JSON.stringify(acceptList)
+                            DownloadFile(acceptList, filename + ".json", "application/json")
+
                         }
                         else {
-                            img.src  = images[cropCount]
+                            img.src = images[cropCount]
                         }
-                        
-
                     }
-
-
-                    //startTag.parentNode.insertBefore(document.createTextNode("<div class='used'>"), startTag);
-                    //endTag.parentNode.insertBefore(document.createTextNode("</div>"), endTag.nextSibling);
                 });
             });
 
-            document.addEventListener('keydown', function(event) {
-    const key = event.key;
-    if (key === "Backspace") {
-        event.preventDefault();
-        reset();
-    }
-});
+            document.addEventListener('keydown', function (event) {
+                const key = event.key;
+                // Backspace to reset if misclicked
+                if (key === "Backspace") {
+                    event.preventDefault();
+                    console.log("Skipped a cropped image")
+                    reset();
+                }
+
+                // Spacebar to skip image
+                if (key === " ") {
+                    reset()
+
+                    // Update count and the cropped image
+                    cropCount += 1
+                    countdown.textContent = cropCount + "/" + totalCrop
+                    acceptList.push([0, " "]) // indicate that this image is skipped
+
+
+                    if (cropCount >= images.length) {
+                        img.src = "WIN.png"
+                        acceptList = JSON.stringify(acceptList)
+                        DownloadFile(acceptList, filename + ".json", "application/json")
+                    }
+                    else {
+                        img.src = images[cropCount]
+                    }
+                }
+            });
 
             function reset() {
                 startedSelect = false
@@ -91,23 +124,41 @@
                 selected.forEach(elem => {
                     elem.classList.remove(("endSelect"));
                 });
-            }function CreateTextFile(content, filename) {
-                            var blob = new Blob([content], {
-                                type: "text/plain;charset=utf-8",
-                            });
-                            const url = URL.createObjectURL(blob);
+            }
+            function DownloadFile(content, filename, mimetype) {
+                var blob = new Blob([content], {
+                    type: mimetype,
+                });
+                const url = URL.createObjectURL(blob);
 
-                            // Fake a client click on a download href
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = filename;
+                // Fake a client click on a download href
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
 
-                            document.body.appendChild(a);
-                            a.click();
+                document.body.appendChild(a);
+                a.click();
 
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                        }
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            function CreateTextFile(content, filename) {
+                var blob = new Blob([content], {
+                    type: "text/plain;charset=utf-8",
+                });
+                const url = URL.createObjectURL(blob);
+
+                // Fake a client click on a download href
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+
+                document.body.appendChild(a);
+                a.click();
+
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
 
 
 
