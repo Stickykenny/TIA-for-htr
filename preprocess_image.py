@@ -6,7 +6,7 @@ from monitoring import timeit
 import ujson
 import logging
 logger = logging.getLogger("TIA_logger")
-
+image_extension = (".jpg", ".png")
 
 def detect_split(gray_img: Image, center_dist: int = 0.05, steps: int = 10) -> int:
     """
@@ -143,6 +143,10 @@ def batch_preprocess(maindir: str) -> None:
     image_split_count = 0
     for directory, sub, files in os.walk(maindir):
         for image in files:
+
+            # Skip non image file
+            if not image.lower().endswith(image_extension):
+                continue
             image_filepath = os.path.join(directory, image)
 
             # If the file is not already processed for splitting

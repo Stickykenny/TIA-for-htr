@@ -40,7 +40,7 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "spl
     main_dataset = list()
     for directory, subfolders, files in os.walk(source_dir):
         main_dataset.extend([directory+os.sep+file
-                            for file in files if file.endswith(".jpg")])
+                            for file in files if file.endswith((".jpg",".png"))])
 
     # Split the dataset given partition
     main_size = len(main_dataset)//2

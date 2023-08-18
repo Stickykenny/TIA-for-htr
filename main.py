@@ -1,8 +1,5 @@
 """
-
-usage : main.py [set_number]
-
-set_number : Specify the group to be processed, with n the number of image per autographe
+usage : main.py
 """
 
 import logging
@@ -53,7 +50,6 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
     # For each folder inside
     for directory, subfolder, files in os.walk(image_dir):
         path_images_dir = directory
-
         # List all images in current directory
         images_files = retrieve_match.fetch_images(path_images_dir, path)
 
@@ -154,9 +150,9 @@ if __name__ == "__main__":
     images_extract_dir = "tmp"+os.sep+"extract_image"
     txt_extract_dir = "tmp"+os.sep+"extract_txt"
 
-    # Filename of the save of matches will be based on a hash made on result of os.walk('Images')
+    # Filename of the save of matches will be based on a hash made on result of os.walk('images')
     hash_filename = sha256(
-        str([i for i in os.walk("Images")]).encode('utf-8')).hexdigest()
+        str([i for i in os.walk("images")]).encode('utf-8')).hexdigest()
     result_filepath = "tmp"+os.sep+"save"+os.sep+"match"+os.sep + \
         str(hash_filename)+".pickle"
 

@@ -12,6 +12,7 @@ import ujson
 import logging
 logger = logging.getLogger("TIA_logger")
 
+image_extension = (".jpg", ".png")
 
 def levenshtein_dist(s1: str, s2: str) -> float:
     """
@@ -471,15 +472,16 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
         with open(checklist_path, "r", encoding='UTF-8', errors="ignore") as file:
             checklist = ujson.load(file)
 
-    # Verify checklist folder is still correct
-    # TODO
-
     if specific_input == None:
         # Process the entire directory
         for (dirpath, subdirnames, filenames) in os.walk(image_dir):
             for filename in filenames:
-                filepath = dirpath+os.sep+filename
 
+                # Skip non image file
+                if not filename.lower().endswith(image_extension):
+                    continue
+
+                filepath = dirpath+os.sep+filename
                 # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
                 count = apply_align(
                     count, filename, filepath, len(filenames), checklist)

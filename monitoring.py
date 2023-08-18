@@ -10,7 +10,7 @@ import os
 from PIL import Image
 import ujson
 logger = logging.getLogger("TIA_logger")
-
+image_extension = (".jpg", ".png")
 
 def setup_logger():
     """
@@ -186,6 +186,8 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
     for maindir, _, images in list(os.walk(image_dir)):
 
         for image in images:
+            if not image.lower().endswith(image_extension):
+                continue
             segment_used = 0
             directory = cropped_dir+os.sep+image
             if not os.path.exists(cropped_dir+os.sep+image):
