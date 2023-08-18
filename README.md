@@ -59,8 +59,10 @@ Some of these processes require some time, so to avoid wasting time, saves are c
 
 ### Manual alignments
 
+see [Usage of add_align.py](/manual_align/README.md) 
+
 The main script is made for automatic text/image alignment, a flaw that comes is the result vary considerably on the default model used.
-In the case of this project, the recognition produced were mostly okay-ish with the default model and improved with the alignments. But none of the harder image could be aligned making the dataset produced highly biased towards already passable image.  <br /> 
+In the case of this project, the recognition produced were mostly okay-ish with the chosen model and improved with the alignments. But none of the harder image could be aligned making the dataset produced highly biased towards already passable image.  <br /> 
 A solution available is to manually align these images. <br />
 
 Using add_align.py, web page will be generated with the ability to manually align. The web page will then produce a json that has to be moved into the mmanual_align folder. Re-using add_align.py will then clean the unused cropped image.
@@ -79,6 +81,7 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 - For the segmentation, delete tmp/save/segment/ and tmp/save/ocr_save/
 - For the OCR, delete tmp/save/ocr_save/
 - For the alignments, delete /tmp/cropped_checklist.json and tmp/cropped_match/
+- For the manual alignments, delete jsons in the manual_align/ folder
 
 # Project Structure
 

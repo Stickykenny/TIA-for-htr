@@ -1,7 +1,11 @@
-./Images/*
 MDV-site-Xavier-Lang/*
 Images/*
-ZipImages/*
-test/*
-batch_extract/*
 __pycache__/*
+tmp/*
+logs/*
+images/*
+*.ipynb
+manual_align/*
+
+
+test/*

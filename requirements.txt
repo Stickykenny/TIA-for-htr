@@ -1,8 +1,15 @@
+# Core
 scipy==1.10.1
-scikit-learn==1.1.2
-kraken
+kraken==4.3.12
+#scikit-learn==1.1.2 #can't be installed now due to compatibility issue
 opencv-python
 Pillow
-pymupdf
 numpy
 ujson
+
+# Fetching data
+selenium
+pymupdf
+
+# Monitoring
+matplotlib
