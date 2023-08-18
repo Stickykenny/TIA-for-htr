@@ -1,14 +1,12 @@
-from collections import Counter
-from monitoring import timeit
 import os
 import shutil
 import random
-import ujson
 import logging
 logger = logging.getLogger("TIA_logger")
 
 
-def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "") -> str:
+
+def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "split_dataset") -> str:
     """
     Split the targeted dataset into a new set by moving out randomly chosen data
 
@@ -18,8 +16,7 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "") 
         partition : 
             Data partition ratio between, the ,normalized number given will be the number of data kept
         newset_name : 
-            The name of the folder where data will be moving into. If the folder already has files, the setname will be appended a number [same way as the default name]
-            (Default : a generated name setX, where X is a number incrementing until the path is free to occupy )
+            The name of the folder where data will be moving into. If the folder already exists do nothing.
 
     Returns :
         Path of the new splitted dataset
@@ -29,34 +26,25 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "") 
     path_to_parent = os.path.dirname(os.path.abspath(source_dir))
 
     # Create directory where the splitted data will be moving to
-    # If no name has been decided, default name will be setX, where X is the smallest natural number non-taken
+    #  If the folder already exists do nothing.
     newset_path = path_to_parent+os.sep+newset_name
-    name_count = 1
-    newset_path += "_0"
-    if newset_name:
-        while os.path.exists(newset_path) and os.listdir(newset_path) != []:
-            newset_path = newset_path[:-len(str(name_count+1))]+str(name_count)
-            name_count += 1
-        os.makedirs(newset_path, exist_ok=True)
-        newset_name = newset_path.split(os.sep)[-1]
-    else:
-        newset_path = path_to_parent+os.sep+"set"+str(name_count)
-        # Until the setname is available, increment the name_count
-        while os.path.exists(newset_name):
-            newset_path = path_to_parent+os.sep+"set"+str(name_count)
-            name_count += 1
-        newset_name = newset_path.split(os.sep)[-1]
+    
+    if os.path.exists(newset_path) :
+        print("Split folder already exists")
+        return 
+    
+    os.makedirs(newset_path, exist_ok=True)
+    newset_name = newset_path.split(os.sep)[-1]
 
     # Retrieve the main dataset
     main_dataset = list()
-    for dir, subfolders, files in os.walk(source_dir):
-        main_dataset.extend([dir+os.sep+file
+    for directory, subfolders, files in os.walk(source_dir):
+        main_dataset.extend([directory+os.sep+file
                             for file in files if file.endswith(".jpg")])
 
     # Split the dataset given partition
     main_size = len(main_dataset)//2
     new_set = (random.sample(main_dataset, int(main_size*(1-partition))))
-    # main_dataset -= set(new_set)
 
     # Move splitted data into their separate folders
     path_diff = os.path.abspath(source_dir).replace(path_to_parent, "")
@@ -77,12 +65,12 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "") 
         shutil.move(imagepath[:-4]+".gt.txt", new_textpath)
         moved_count += 1
 
-    logger.info("Moved a total of "+str(moved_count) +
+    print("Moved a total of "+str(moved_count) +
                 " pairs of text/image to create the "+newset_name+" folder.")
     return path_to_parent+os.sep+newset_name
 
 
 if __name__ == '__main__':
     split_dataset("tmp/cropped_match", partition=0.8,
-                  newset_name="test_dataset")
+                  newset_name="split_dataset")
     pass

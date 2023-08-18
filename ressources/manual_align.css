@@ -1,34 +1,52 @@
 #top,
 #bottom {
-    position: fixed;
-    left: 0;
-    right: 0;
-    height: 80%;
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 80%;
 }
 
 #top {
-    top:200 ;
+  top: 200;
 }
 
 #bottom {
-    bottom: 0;
-    font-size: 24px;
-    text-align: center;
- }
-#header {
-   text-align: center;
+  bottom: 0;
+  font-size: 24px;
+  text-align: center;
 }
- .startSelect {
-    border-width: 3px;
-    border-style: solid;
-    border-color:green;
- } 
- .endSelect {
-    border-width: 3px;
-    border-style: solid;
-    border-color:red;
- }
- .used {
-    text-decoration: dashed;
-    font-size: 10px;
- }
+
+#header {
+  text-align: center;
+}
+
+.startSelect {
+  border-width: 3px;
+  border-style: solid;
+  border-color: green;
+}
+
+.endSelect {
+  border-width: 3px;
+  border-style: solid;
+  border-color: red;
+}
+
+aside {
+  position: fixed;
+  z-index: 1000;
+  left: 5vw;
+  right: 50vw;
+}
+
+aside img {
+  max-width: 10vw;
+  opacity: 25%;
+  max-height: 200px;
+}
+
+aside:hover img {
+  max-width: 100vw;
+  max-height: 90vh;
+  opacity: 90%;
+}

@@ -8,10 +8,12 @@
 </head>
 
 <body>
-    <div id="header"> TITLE <div id="countdown"></div>
-    </div>
-    <div id="top" style="text-align:center;"><img id='crop' style="min-width:500px;max-width:1000px" src="GameOver.png"
-            alt="Image not shown correctly, try changing browser" download="dvkns.jpg"></div>
+    <div id="header"> TITLE <div id="countdown"></div></div>
+    <aside id="sidebar"><img id='hoverimg' src="../FULLIMAGE"></aside>
+    
+    
+    <div id="top" style="text-align:center;"><img id='crop' style="min-width:500px;max-width:1000px"
+            alt="Image not shown correctly, try changing browser"></div>
     <div id="bottom" fontsize="18px">
 
         SOURCE_TEXT
@@ -65,14 +67,13 @@
 
                         // Create text file of the text selected
                         textContent = textContent.replace("_", " ")
-                        DownloadFile(textContent, filename + "_" + cropCount + ".gt.txt", "text/plain;charset=utf-8")
                         // Update count and the cropped image
                         cropCount += 1
                         acceptList.push([1, textContent]) // indicate that this image is used
                         countdown.textContent = cropCount + "/" + totalCrop
 
                         if (cropCount >= images.length) {
-                            img.src = "WIN.png"
+                            img.src = ""
                             acceptList = JSON.stringify(acceptList)
                             DownloadFile(acceptList, filename + ".json", "application/json")
 
@@ -104,7 +105,7 @@
 
 
                     if (cropCount >= images.length) {
-                        img.src = "WIN.png"
+                        img.src = ""
                         acceptList = JSON.stringify(acceptList)
                         DownloadFile(acceptList, filename + ".json", "application/json")
                     }
@@ -140,27 +141,8 @@
                 a.click();
 
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                            URL.revokeObjectURL(url);
             }
-            function CreateTextFile(content, filename) {
-                var blob = new Blob([content], {
-                    type: "text/plain;charset=utf-8",
-                });
-                const url = URL.createObjectURL(blob);
-
-                // Fake a client click on a download href
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-
-                document.body.appendChild(a);
-                a.click();
-
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-
-
 
         </script>
 </body>
