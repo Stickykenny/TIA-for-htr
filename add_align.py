@@ -24,6 +24,23 @@ from PIL import Image
 import re
 import sys
 
+def remove_additionnal_dots(txt: str) :
+    """
+    Will remove all dots not considered extension related for jpg,png and gt.txt files
+
+    Parameters:
+        txt : 
+            Text to curate
+
+    Returns:
+        Curated txt
+    """
+    if txt.endswith((".jpg",".png")) : 
+        return ''.join(txt[:-4].split("."))+".jpg"
+    if txt.endswith(".gt.txt") :
+        return ''.join(txt[:-7].split("."))+".gt.txt"
+    return txt
+
 def generate_manual_align_webpage(title: str, images: list, text_ref: str , total:int) -> None:
     """
     Will generate the webpage for manual alignment text/image
@@ -112,8 +129,11 @@ def curate_alignments(acceptlist:list, filename:str )->None :
                 os.remove("manual_align"+os.sep+filename+os.sep+file)
             # Create the text file associated
             else :
-                with open("manual_align"+os.sep+filename+os.sep+file[:-4]+".gt.txt", 'w', encoding="UTF-8", errors="ignore") as newtxt :
+                txt_filename  = remove_additionnal_dots(file[:-4]+".gt.txt")
+                with open("manual_align"+os.sep+filename+os.sep+txt_filename, 'w', encoding="UTF-8", errors="ignore") as newtxt :
                     newtxt.write(acceptlist[crop_count][1])
+
+                os.rename(cropped_dir+os.sep+file, cropped_dir+os.sep+remove_additionnal_dots(file))
 
     print("Folder tmp"+os.sep+filename+" is curated.")
 
