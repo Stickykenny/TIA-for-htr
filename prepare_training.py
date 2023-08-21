@@ -1,3 +1,9 @@
+"""
+usage : python3 prepare_training.py
+
+Split files of a directory into another directory
+"""
+
 import os
 import shutil
 import random
@@ -30,8 +36,9 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "spl
     newset_path = path_to_parent+os.sep+newset_name
     
     if os.path.exists(newset_path) :
+        pass
         print("Split folder already exists")
-        return 
+        #return 
     
     os.makedirs(newset_path, exist_ok=True)
     newset_name = newset_path.split(os.sep)[-1]
@@ -42,9 +49,7 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "spl
         main_dataset.extend([directory+os.sep+file
                             for file in files if file.endswith((".jpg",".png"))])
 
-    # Split the dataset given partition
-    main_size = len(main_dataset)//2
-    new_set = (random.sample(main_dataset, int(main_size*(1-partition))))
+    new_set = (random.sample(main_dataset, int(len(main_dataset)*(partition))))
 
     # Move splitted data into their separate folders
     path_diff = os.path.abspath(source_dir).replace(path_to_parent, "")
@@ -55,15 +60,21 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "spl
         # Obtain the new path
         new_imagepath = path_to_parent+os.sep + newset_name+os.sep + \
             imagepath.replace(path_diff, "#").split("#")[-1]
-        new_textpath = new_imagepath[:-4]+".gt.txt"
+        new_textpath = new_imagepath[:-4]+".txt"
 
         # Create output folders if missing
         os.makedirs(os.path.dirname(new_imagepath), exist_ok=True)
 
         # Move image and text file
-        shutil.move(imagepath, new_imagepath)
-        shutil.move(imagepath[:-4]+".gt.txt", new_textpath)
-        moved_count += 1
+        try :
+            
+            shutil.move(imagepath, new_imagepath)
+            shutil.move(imagepath[:-4]+".txt", new_textpath)
+            moved_count += 1
+        except : 
+            print("Error moving "+imagepath)
+            continue
+        
 
     print("Moved a total of "+str(moved_count) +
                 " pairs of text/image to create the "+newset_name+" folder.")
