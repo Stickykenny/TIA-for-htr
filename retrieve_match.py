@@ -2,6 +2,10 @@
 retrieve_match.py: Contains functions for the task of fetching the usable data
 """
 
+# Dictionary
+# cotes : [ cote : autographe_fullname]
+# cotes_available : [ cote : [ list_imagefiles ]]
+
 import os
 import re
 import logging
@@ -148,9 +152,3 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
         return cotes, count, cotes_availables, files, current_size, i+1
 
 
-if __name__ == "__main__":
-
-    # Dictionnaire
-    # cotes : [ code : nom complet de l'autographe ]
-    # cotes_available : [ code : [ liste des noms de fichiers images ]]
-    pass

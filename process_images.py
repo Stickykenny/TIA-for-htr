@@ -6,7 +6,6 @@ from kraken import blla
 from kraken import rpred
 from kraken.lib import models
 from PIL import Image
-import cv2 as cv
 import os
 import pickle
 import ujson
@@ -154,7 +153,3 @@ def ocr_img(model: models.TorchSeqRecognizer, im: Image, baseline_seg: dict,  fi
 
     return predictions
 
-
-if __name__ == "__main__":
-
-    pass

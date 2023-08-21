@@ -148,12 +148,3 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, syllabificatio
                 new_file.write(extract_pdf_text(path_pdfs_dir+os.sep+file))
         logger.info("Check "+os.getcwd()+os.sep+output_folder+os.sep)
 
-
-if __name__ == "__main__":
-
-    pass
-
-    path_PDFs_dir = "MDV-site-Xavier-Lang"
-    retrieve_pdfs_text(path_PDFs_dir,
-                       syllabification_cut=True)
-    # retrieve_pdfs_text(path_PDFs_dir, regroup = False)
