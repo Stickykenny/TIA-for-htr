@@ -67,13 +67,12 @@ def split_image(image_filepath: str, split_status_path) -> bool:
         os.remove(image_filepath)
         return False
 
-    img = Image.open(image_filepath)
+    img = cv.imread(image_filepath)
     # If height > width, then it is not a double page
-    if img.size[0] > img.size[1]:
+    if img.shape[1] > img.shape[0]:
         double_page = False
     else:
         double_page = True
-    img.close()
 
     if double_page:
 
