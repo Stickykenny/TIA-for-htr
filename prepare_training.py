@@ -36,9 +36,8 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "spl
     newset_path = path_to_parent+os.sep+newset_name
     
     if os.path.exists(newset_path) :
-        pass
         print("Split folder already exists")
-        #return 
+        return 
     
     os.makedirs(newset_path, exist_ok=True)
     newset_name = newset_path.split(os.sep)[-1]
@@ -82,6 +81,6 @@ def split_dataset(source_dir: str, partition: int = 0.9, newset_name: str = "spl
 
 
 if __name__ == '__main__':
-    split_dataset("tmp/cropped_match", partition=0.8,
+    split_dataset("tmp/extract_image", partition=0.005,
                   newset_name="split_dataset")
     pass

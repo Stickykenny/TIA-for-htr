@@ -69,7 +69,7 @@ def split_image(image_filepath: str, split_status_path) -> bool:
 
     img = Image.open(image_filepath)
     # If height > width, then it is not a double page
-    if img.shape[0] > img.shape[1]:
+    if img.size[0] > img.size[1]:
         double_page = False
     else:
         double_page = True

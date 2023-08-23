@@ -1,11 +1,10 @@
 MDV-site-Xavier-Lang/*
-Images/*
 __pycache__/*
 tmp/*
 logs/*
 images/*
 *.ipynb
 manual_align/*
-
+juxtaposed/*
 
 test/*
