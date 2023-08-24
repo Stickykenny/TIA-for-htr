@@ -20,6 +20,9 @@ kraken will install version 1.2.2 of scikit-learn but it is not supported, due t
 
 `pip install scikit-learn==1.1.2`
 
+For the version using google Lens, install Tkinter <br>
+`sudo apt install python3-tk (Unix)` or `pip install tk (Windows)`
+
 # Usage
 
 #### Input
@@ -44,6 +47,8 @@ Given the situation, it is likely that the Data Preparation part in main.py can 
 1. With a database of images and transcriptions of some of these images, the first step is to find these matches and extract them
 
 2. ( In the case of the MDV database, the transcription were in pdf file with filename of dates, so additionnal processing was needed to fetch the right one and rename it)
+
+### Alignment
 
 3. Using kraken, the selected images are segmented and ocr-ed to obtain a rough result that will be aligned with the actual transcription
 
@@ -75,13 +80,13 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 
 ### How do I reset ?
 
-- For everything, delete the folder tmp/
-- For the text retrieval, delete tmp/extract_pdf/ and extract_txt/
-- For the pre-processing, delete tmp/extract_image and tmp/save/split_status.json
-- For the segmentation, delete tmp/save/segment/ and tmp/save/ocr_save/
-- For the OCR, delete tmp/save/ocr_save/
-- For the alignments, delete /tmp/cropped_checklist.json and tmp/cropped_match/
-- For the manual alignments, delete jsons in the manual_align/ folder
+- For everything, delete the folder `tmp/` and `manual_align/`
+- For the text retrieval, delete `tmp/extract_pdf/` and `extract_txt/`
+- For the pre-processing, delete `tmp/extract_image` and `tmp/save/split_status.json`
+- For the segmentation, delete `tmp/save/segment/` and `tmp/save/ocr_save/`
+- For the OCR, delete `tmp/save/ocr_save/`
+- For the alignments, delete `/tmp/cropped_checklist.json` and `tmp/cropped_match/`
+- For the manual alignments, delete `jsons in the manual_align/` folder
 
 # Project Structure
 
@@ -91,9 +96,9 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 ├── models/
 |   └── >>> Contains Kraken model
 ├── logs/
-|   └── >>> Contains various files used by the program
-├── ressources/
 |   └── >>> Contains logs created each run
+├── ressources/
+|   └── >>> Contains various files used by the program
 ├── manual_align/
 |   └── >>> Contains files for manually align text/image
 ├── MDV-site-Xavier-Lang/
@@ -103,11 +108,12 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
     ├── cropped_match/
     |   └── >>>  Contains for each image, pairs of text/image of their segmented parts
     ├── extract_image/
-    |   └── >>> Contains images fetched
+    |   └── >>> Contains images fetched to process
     ├── extract_pdf/
     |   └── >>> Contains PDFs fetched
     ├── extract_txt/
     |   └── >>> Contains text file extracted from PDFs in the tmp/extract_pdf/ directory
+    |           These files are the reference to which we align the OCR prediction
     ├── ocr_result/
     |   └── >>> Contains .pickle file to save data
     ├── segment_stats/
@@ -120,7 +126,7 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
     │   ├── ocr_save/
     |   |   └── >>> Contains ocr_record data obtained using kraken prediction
     │   └── segment/
-    |   |   └── >>> Contains results of blla.segment()
+    |   |   └── >>> Contains results of blla.segment() (= segmentation data)
     └── segmented/
         └── >>> Contains images segmented (boundaries shown)
 
