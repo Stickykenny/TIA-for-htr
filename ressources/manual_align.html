@@ -38,14 +38,18 @@
 
             clickableTexts.forEach(text => {
                 // Left click to set the start of the transcription
-                text.addEventListener('click', () => {
+                text.addEventListener('click', function (event) {;
+                    event.preventDefault()
                     reset();
                     text.classList.add("startSelect");
                     startedSelect = true;
 
                 });
                 // Right click to set the end of the transcription
-                text.addEventListener('contextmenu', () => {
+                text.addEventListener('contextmenu', function (event) {
+                    
+                    event.preventDefault();
+
                     text.classList.add("endSelect")
                     if (startedSelect) {
                         const startTag = document.getElementsByClassName('startSelect')[0];
@@ -86,10 +90,11 @@
             });
 
             document.addEventListener('keydown', function (event) {
+                event.preventDefault();
+
                 const key = event.key;
                 // Backspace to reset if misclicked
                 if (key === "Backspace") {
-                    event.preventDefault();
                     console.log("Skipped a cropped image")
                     reset();
                 }

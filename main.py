@@ -21,13 +21,17 @@ import pdf_text_extract
 logger = logging.getLogger("TIA_logger")
 
 
-def retriever(cotes: dict, image_dir: str, output: str) -> dict:
+def retriever(cotes: dict, image_dir: str, output: str, result_filepath:str ) -> dict:
     """
     Retrieve informations to create the dictionnary {cote:[images]}
 
     Parameters :
         cotes :
-            Directory to search images, {cote:autographe}
+            Dictionnary associating cote->autographe
+        image_dir :
+            Directory to search images,
+        result_filepath :
+            Path to dump list of all images fetched
         path :
             If True, images will be fetched with their relative path instead of their filename
         recursive :
@@ -96,7 +100,7 @@ def retriever(cotes: dict, image_dir: str, output: str) -> dict:
 
 
 @timeit
-def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf", c1: int = 4, c2: int = 9) -> None:
+def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf",txt_extract_dir:str="tmp"+os.sep+"extract_txt", c1: int = 4, c2: int = 9) -> None:
     """
     For all letters specified in letters_fetched, extract the text of the pdf associated into pdf_extract_dir if present in pdf_source
 
@@ -137,18 +141,22 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
     pdf_text_extract.retrieve_pdfs_text(
         pdf_extract_dir, output_folder=txt_extract_dir, syllabification_cut=True)
 
+def prepare_data(images_extract_dir:str , txt_extract_dir:str) ->dict: 
+    """
+    Process to retrieve only images with transcription (for the MDV dataset)
 
-if __name__ == "__main__":
+    Parameters :
+        images_extract_dir :
+            Directory to where images will be extracted to
+        txt_extract_dir :
+            Directory to where transcriptions will be extracted to
 
-    # Logger
-    logger = monitoring.setup_logger()
-
-    # Define files and directory location
+    Returns :
+        Dictionary of all letters fetched : associating cote->images_list
+    """
+    image_dir = 'images'
     csv_source = 'Correspondance MDV - Site https __www.correspondancedesbordesvalmore.com - lettres.csv'
     pdf_source = 'MDV-site-Xavier-Lang'
-    image_dir = 'images'
-    images_extract_dir = "tmp"+os.sep+"extract_image"
-    txt_extract_dir = "tmp"+os.sep+"extract_txt"
 
     # Filename of the save of matches will be based on a hash made on result of os.walk('images')
     hash_filename = sha256(
@@ -156,15 +164,6 @@ if __name__ == "__main__":
     result_filepath = "tmp"+os.sep+"save"+os.sep+"match"+os.sep + \
         str(hash_filename)+".pickle"
 
-    # Create directories for save and results
-    os.makedirs(images_extract_dir, exist_ok=True)
-    os.makedirs(txt_extract_dir, exist_ok=True)
-    os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
-
-
-    # ----------------------------------------------------
-    # DATA PREPARATION ----------------
-    
     # Retrieve from csv every cote in the form of a dictionnary cote:autographe
     autographes = utils_extract.get_column_values(csv_source, column=9)
     cotes = retrieve_match.indexing_autographes(autographes)
@@ -182,7 +181,7 @@ if __name__ == "__main__":
             "Loaded matches from previous result from "+result_filepath)
     else:
         # This one process may take time
-        cotes_associated = retriever(cotes, image_dir, result_filepath)
+        cotes_associated = retriever(cotes, image_dir, result_filepath, result_filepath)
 
     # -------------------------------------------------------------------
 
@@ -203,8 +202,30 @@ if __name__ == "__main__":
     # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
     processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
-                   pdf_extract_dir="tmp"+os.sep+"extract_pdf")
+                   pdf_extract_dir="tmp"+os.sep+"extract_pdf", txt_extract_dir=txt_extract_dir)
 
+    return letters_fetched
+
+if __name__ == "__main__":
+
+    # Logger
+    logger = monitoring.setup_logger()
+
+    # Define files and directory location
+    image_dir = 'images'
+    images_extract_dir = "tmp"+os.sep+"extract_image"
+    txt_extract_dir = "tmp"+os.sep+"extract_txt"
+
+    # Create directories for save and results
+    os.makedirs(images_extract_dir, exist_ok=True)
+    os.makedirs(txt_extract_dir, exist_ok=True)
+    os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
+
+
+    # ----------------------------------------------------
+    # DATA PREPARATION for the MDV dataset ----------------
+
+    #prepare_data(images_extract_dir,txt_extract_dir)
 
     # End of DATA PREPARATION ----------------
     # ----------------------------------------------------
@@ -214,7 +235,7 @@ if __name__ == "__main__":
     # Pre-process image files
 
     # Split double pages into 2 single pages
-    preprocess_image.batch_preprocess(images_extract_dir)
+    #preprocess_image.batch_preprocess(images_extract_dir)
 
     # -------------------------------------------------------------------
 
@@ -232,3 +253,6 @@ if __name__ == "__main__":
     monitoring.generate_compare_html("tmp"+os.sep+"cropped_match")
     monitoring.quantify_segment_used(
         images_extract_dir, "tmp"+os.sep+"cropped_match", 'tmp/save/segment')
+    logger.info("Finished statistics calculations")
+    logger.info("You can use add_align.py to manually add alignments")
+

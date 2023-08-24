@@ -27,7 +27,13 @@ For the version using google Lens, install Tkinter <br>
 
 #### Input
 
-Put all images into the images/ directory and all pdfs MDV-site-Xavier-Lang/ or directly their txt files in tmp/extract_txt
+For the general cases of dataset : <br>
+Put all images into `tmp/extract_image` and their transcriptions into `tmp/extract_txt`<br>
+(Like the name suggest files in `tmp/` may be altered)
+
+For the MDV dataset : <br>
+Put all images into the `images/` directory and all pdfs `MDV-site-Xavier-Lang/` or directly their txt files in `tmp/extract_txt`
+#### Command
 
 ```
 
@@ -92,7 +98,8 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 
 ```
 ├── images/
-│   └── >>> Contains images in their folder
+│   └── >>> Contains unfiltered images in their folder 
+|           If the data is already associated with a transcription (same prefix) ignore this folder
 ├── models/
 |   └── >>> Contains Kraken model
 ├── logs/

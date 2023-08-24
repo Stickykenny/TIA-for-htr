@@ -171,6 +171,7 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
         segment_stats = segment_stats[total_skip:number]
     print("Look for images up to the number "+str(number))
 
+    progress_count= 0
     for cropped_path, usage_ratio, used, total, usable in segment_stats : 
         filename= cropped_path.split(os.sep)[-1]
         images =[]
@@ -226,6 +227,8 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
 
             text_ref = retrieve_transcription(filename)
             generate_manual_align_webpage(filename, images, text_ref , usable )
+            progress_count+=1
+            print("Generated "+str(progress_count)+"/"+str(len(segment_stats))+" manual align webpage")
 
 if __name__ == '__main__':
 
