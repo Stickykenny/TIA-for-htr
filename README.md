@@ -1,6 +1,6 @@
 # TIA-for-htr
 
-Text-Image Alignment for Handwritten Text Recognition is a script tailored toward the MDV database to prepare pairs of text/image for training an HTR model using [kraken OCR](https://github.com/mittagessen/kraken)
+Text-Image Alignment for Handwritten Text Recognition is a script tailored toward the MDV database to prepare pairs of text/image for training an HTR model using [Kraken OCR](https://github.com/mittagessen/kraken)
 
 > Kiessling, B. (2022). The Kraken OCR system (Version 4.1.2) [Computer software]. https://kraken.re
 
@@ -10,13 +10,13 @@ This project was realized in the context of an internship at LIGM for the 1st ye
 
 # Installation
 
-It is mentionned that kraken only runs on **Linux or Mac OS X**. Windows is not supported.
+It is mentionned that Kraken only runs on **Linux or Mac OS X**. Windows is not supported.
 
 The script will require to install multiple python library, they can be installed using pip :
 
 `pip install -r requirements.txt`
 
-kraken will install version 1.2.2 of scikit-learn but it is not supported, due to this issue, scikit-learn need to be re-installed/downgraded with a specific version after
+Kraken will install version 1.2.2 of scikit-learn but it is not supported, due to this issue, scikit-learn need to be re-installed/downgraded with a specific version after
 
 `pip install scikit-learn==1.1.2`
 
@@ -33,6 +33,7 @@ Put all images into `tmp/extract_image` and their transcriptions into `tmp/extra
 
 For the MDV dataset : <br>
 Put all images into the `images/` directory and all pdfs `MDV-site-Xavier-Lang/` or directly their txt files in `tmp/extract_txt`
+
 #### Command
 
 ```
@@ -43,8 +44,8 @@ Put all images into the `images/` directory and all pdfs `MDV-site-Xavier-Lang/`
 
 ```
 
-*For this project, image files were named like "Ms1467-36-3 2.jpg" and their id/cote are in this format "1467-36-3" . 
-Given the situation, it is likely that the Data Preparation part in main.py can be commented*
+_For this project, image files were named like "Ms1467-36-3 2.jpg" and their id/cote are in this format "1467-36-3" .
+Given the situation, it is likely that the Data Preparation part in main.py can be commented_
 
 # How it works
 
@@ -56,7 +57,7 @@ Given the situation, it is likely that the Data Preparation part in main.py can 
 
 ### Alignment
 
-3. Using kraken, the selected images are segmented and ocr-ed to obtain a rough result that will be aligned with the actual transcription
+3. Using Kraken, the selected images are segmented and ocr-ed to obtain a rough result that will be aligned with the actual transcription
 
 4. Using the ocr result, we create pairs of text/image for each segmented parts of the image associated with their correct transcription
 
@@ -70,16 +71,17 @@ Some of these processes require some time, so to avoid wasting time, saves are c
 
 ### Manual alignments
 
-see [Usage of add_align.py](/manual_align/README.md) 
+see [Usage of add_align.py](/manual_align/README.md)
 
 The main script is made for automatic text/image alignment, a flaw that comes is the result vary considerably on the default model used.
-In the case of this project, the recognition produced were mostly okay-ish with the chosen model and improved with the alignments. But none of the harder image could be aligned making the dataset produced highly biased towards already passable image.  <br /> 
+In the case of this project, the recognition produced were mostly okay-ish with the chosen model and improved with the alignments. But none of the harder image could be aligned making the dataset produced highly biased towards already passable image. <br />
 A solution available is to manually align these images. <br />
 
 Using add_align.py, web page will be generated with the ability to manually align. The web page will then produce a json that has to be moved into the mmanual_align folder. Re-using add_align.py will then clean the unused cropped image.
+
 ### How to train a model
 
-To train/fine-tune a model using kraken/ketos it will be necessary to regroup all pairs of text/image into a single folder beforehand, and each cropped image must have his transcription in a filename of the same prefix (prefix meaning the string before the first "." ) and ending with '.gt.txt'
+To train/fine-tune a model using Kraken/ketos it will be necessary to regroup all pairs of text/image into a single folder beforehand, and each cropped image must have his transcription in a filename of the same prefix (prefix meaning the string before the first "." ) and ending with '.gt.txt'
 
 Then the training command can be launched ( see [ketos documentation](https://kraken.re/4.3.0/ketos.html) ) <br />
 Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new -p 0.75 -B 16 -f path`
@@ -98,7 +100,7 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 
 ```
 ├── images/
-│   └── >>> Contains unfiltered images in their folder 
+│   └── >>> Contains unfiltered images in their folder
 |           If the data is already associated with a transcription (same prefix) ignore this folder
 ├── models/
 |   └── >>> Contains Kraken model
@@ -119,21 +121,21 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
     ├── extract_pdf/
     |   └── >>> Contains PDFs fetched
     ├── extract_txt/
-    |   └── >>> Contains text file extracted from PDFs in the tmp/extract_pdf/ directory
+    |   └── >>> Contains text transcriptions
     |           These files are the reference to which we align the OCR prediction
     ├── ocr_result/
     |   └── >>> Contains .pickle file to save data
-    ├── segment_stats/
-    |   └── >>> Contains statistics of the alignments produced, an histogram and a json. 
-    |           (see monitoring.quantify_segment_used() for the json structure.)
     ├── save/
-    |   └── >>>
+    |   ├── >>>
     │   ├── match/
     |   |   └── >>> Contains dictionary of matches cotes-images as a pickle file, the filename is a hash of the result of os.walk(‘./images/)
     │   ├── ocr_save/
-    |   |   └── >>> Contains ocr_record data obtained using kraken prediction
-    │   └── segment/
+    |   |   └── >>> Contains ocr_record data obtained using Kraken prediction
+    │   ├── segment/
     |   |   └── >>> Contains results of blla.segment() (= segmentation data)
+    |   └── segment_stats/
+    |       └── >>> Contains statistics of the alignments produced, an histogram and a json.
+    |           (see monitoring.quantify_segment_used() for the json structure.)
     └── segmented/
         └── >>> Contains images segmented (boundaries shown)
 
