@@ -5,6 +5,7 @@ process_image.py: Contains functions for processing images with kraken OCR
 from kraken import blla
 from kraken import rpred
 from kraken.lib import models
+from kraken import serialization
 from PIL import Image
 import os
 import pickle
@@ -33,6 +34,68 @@ def kraken_segment(im: Image) -> dict:
         Dictionnary produced by kraken.blla.segment()
     """
     return blla.segment(im)
+
+
+@timeit
+def ocr_img(model: models.TorchSeqRecognizer, im: Image, baseline_seg: dict,  filename: str) -> list:
+    """
+    Return and save result of applying prediction on an image
+
+    Parameters :
+        model :
+            Model used for predicting
+        im :
+            Image PIL object
+        baseline_seg :
+            Segmentation data obtained from blla.segment(im)
+        filename :
+            Name of the image file
+
+    Returns :
+        List of Predictions produce by kraken.rpred.rpred()
+    """
+    ocr_dir = 'tmp'+os.sep+'ocr_result'
+    os.makedirs(ocr_dir, exist_ok=True)
+
+    # https://kraken.re/main/api.html#recognition
+    predictions = [record for record in rpred.rpred(model, im, baseline_seg)]
+
+    # Backup the ocr_record object to avoid time-consuming steps on relaunch
+    with open("tmp"+os.sep+"save"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle', 'wb') as file:
+        pickle.dump(predictions, file)
+
+    # Also produce a txt file of the result from the prediction
+    ocr_filepath = ocr_dir+os.sep+filename[:-4]+'_ocr.txt'
+    with open(ocr_filepath, 'w', encoding='UTF-8', errors="ignore") as f:
+        for record in predictions:
+            f.write(record.prediction+"\n")
+        logger.info("Created "+ocr_filepath)
+
+    logger.debug("Saved ocr prediction into "+"tmp"+os.sep +
+                 "save"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle')
+
+    return predictions
+
+
+@timeit
+def serialize_alto(image_filepath: str, predictions: list) -> str:
+    """
+    Serialize the result of the ocr prediction by Kraken
+
+    Parameters :
+        image_filepath :
+            Path to the image file
+        predictions :
+            List of ocr_record produced by Kraken's OCR
+
+    Returns :
+        Text content of the ALTO produced
+    """
+    im = Image.open(image_filepath)
+    alto = serialization.serialize(
+        predictions, image_name=image_filepath.split(os.sep)[-1], image_size=im.size, template="alto")
+    im.close()
+    return alto
 
 
 @timeit
@@ -79,10 +142,14 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
                 "ocr_save"+os.sep+filename+'_ocr.pickle'
             segment_save = "tmp"+os.sep+"save"+os.sep + \
                 "segment"+os.sep+filename+'_segment.json'
+            alto_xml_save = "tmp"+os.sep+"save"+os.sep + \
+                "ocr_serialized "+os.sep+filename+'_ocr.xml'
 
             if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
                 # If the ocr result/predict_backup already exists, then there is no need to process the associated image
-                continue
+                if not os.path.exists(alto_xml_save):
+                    with open(predict_backup, 'rb') as file:
+                        predictions = pickle.load(file)
 
             else:
                 logger.info("Processing : "+filepath)
@@ -104,52 +171,16 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
 
                 # Prediction/OCR
                 logger.debug("Starting prediction")
-                ocr_img(model, im, baseline_seg, filename)
+                predictions = ocr_img(model, im, baseline_seg, filename)
                 ocr_count += 1
+
+                # ALTO XML, predictions serialized format
+                if not os.path.exists(alto_xml_save):
+                    alto = serialize_alto(filepath, predictions)
+                    with open(alto_xml_save, 'w', encoding="UTF-8", errors="ignore") as fp:
+                        fp.write(alto)
 
             nb_img_processed += 1
             im.close()
             logger.debug("Done with "+str(nb_img_processed)+" images, a total of " + str(segment_count) +
                          " segmentation and " + str(ocr_count) + " ocr were done")
-
-
-@timeit
-def ocr_img(model: models.TorchSeqRecognizer, im: Image, baseline_seg: dict,  filename: str) -> list:
-    """
-    Return and save result of applying prediction on an image
-
-    Parameters :
-        model :
-            Model used for predicting
-        im :
-            Image PIL object
-        baseline_seg :
-            Segmentation data obtained from blla.segment(im)
-        filename :
-            Name of the image file
-
-    Returns :
-        List of Predictions produce by kraken.rpred.rpred()
-    """
-    ocr_dir = 'tmp'+os.sep+'ocr_result'
-    os.makedirs(ocr_dir, exist_ok=True)
-
-    # https://kraken.re/main/api.html#recognition
-    predictions = [record for record in rpred.rpred(model, im, baseline_seg)]
-
-    # Backup the ocr_record object to avoid time-consuming steps on relaunch
-    with open("tmp"+os.sep+"save"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle', 'wb') as file:
-        pickle.dump(predictions, file)
-
-    # Also produce a txt file of the result from the prediction
-    ocr_filepath = ocr_dir+os.sep+filename[:-4]+'_ocr.txt'
-    with open(ocr_filepath, 'w', encoding='UTF-8', errors="ignore") as f:
-        for record in predictions:
-            f.write(record.prediction+"\n")
-        logger.info("Created "+ocr_filepath)
-
-    logger.debug("Saved ocr prediction into "+"tmp"+os.sep +
-                 "save"+os.sep+"ocr_save"+os.sep+filename+'_ocr.pickle')
-
-    return predictions
-
