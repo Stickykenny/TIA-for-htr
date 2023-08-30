@@ -24,7 +24,8 @@ from PIL import Image
 import re
 import sys
 
-def remove_additionnal_dots(txt: str) :
+
+def remove_additionnal_dots(txt: str):
     """
     Will remove all dots not considered extension related for jpg,png and gt.txt files
 
@@ -35,13 +36,14 @@ def remove_additionnal_dots(txt: str) :
     Returns:
         Curated txt
     """
-    if txt.endswith((".jpg",".png")) : 
+    if txt.endswith((".jpg", ".png")):
         return ''.join(txt[:-4].split("."))+".jpg"
-    if txt.endswith(".gt.txt") :
+    if txt.endswith(".gt.txt"):
         return ''.join(txt[:-7].split("."))+".gt.txt"
     return txt
 
-def generate_manual_align_webpage(title: str, images: list, text_ref: str , total:int) -> None:
+
+def generate_manual_align_webpage(title: str, images: list, text_ref: str, total: int, aligned: int) -> None:
     """
     Will generate the webpage for manual alignment text/image
 
@@ -58,7 +60,7 @@ def generate_manual_align_webpage(title: str, images: list, text_ref: str , tota
     Returns:
         None 
     """
-    with open("ressources"+os.sep+"manual_align.html", "r", encoding="UTF-8", errors="ignore") as base_html :
+    with open("ressources"+os.sep+"manual_align.html", "r", encoding="UTF-8", errors="ignore") as base_html:
         webpage = base_html.read()
 
     os.makedirs("manual_align"+os.sep+title, exist_ok=True)
@@ -72,16 +74,20 @@ def generate_manual_align_webpage(title: str, images: list, text_ref: str , tota
     images = [img.replace("manual_align"+os.sep, "") for img in images]
     webpage = webpage.replace("SOURCE_TEXT", text_ref)
     webpage = webpage.replace("TITLE", title)
-    webpage = webpage.replace("IMAGELIST", str(images) )
-    webpage = webpage.replace("TOTALCROP", str(total) )
-    webpage = webpage.replace("FULLIMAGE", "tmp"+os.sep+"segmented"+os.sep+title[:-4]+"_segmented.jpg" )
-    webpage = webpage.replace("manual_align.css", ".."+os.sep+"ressources"+os.sep+"manual_align.css" )
+    webpage = webpage.replace("COMMENT", "This page originally already was " +
+                              str(aligned)+"/"+str(total) + " cropped aligned")
+    webpage = webpage.replace("IMAGELIST", str(images))
+    webpage = webpage.replace("TOTALCROP", str(total))
+    webpage = webpage.replace(
+        "FULLIMAGE", "tmp"+os.sep+"segmented"+os.sep+title[:-4]+"_segmented.jpg")
+    webpage = webpage.replace(
+        "manual_align.css", ".."+os.sep+"ressources"+os.sep+"manual_align.css")
 
-
-    with open("manual_align"+os.sep+title+".html", "w", encoding="UTF-8", errors="ignore") as new_html :
+    with open("manual_align"+os.sep+title+".html", "w", encoding="UTF-8", errors="ignore") as new_html:
         new_html.write(webpage)
 
-def retrieve_transcription(filename:str) ->str:
+
+def retrieve_transcription(filename: str) -> str:
     """
     Retrieve the transcription of the image file
 
@@ -93,10 +99,10 @@ def retrieve_transcription(filename:str) ->str:
         The transcription of the image
     """
     name_pattern = re.compile("\d+(?:-\d+)*")
-    cote = name_pattern.search(filename).group(0)
+    # cote = name_pattern.search(filename).group(0)
 
     # Retrieve filepath of the ocr and manual transcription form the image filename
-    txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+cote+".gt.txt"
+    txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+filename[:-4]+".gt.txt"
 
     # Retrieve the manual transcription without tab and newline
     with open(txt_manual_file, newline='', encoding='UTF-8', errors="ignore") as inputfile:
@@ -104,10 +110,11 @@ def retrieve_transcription(filename:str) ->str:
         txt_manual = ''.join(txt_manual).replace('\t', '')
     return txt_manual
 
-def curate_alignments(acceptlist:list, filename:str )->None :
+
+def curate_alignments(acceptlist: list, filename: str) -> None:
     """
     Remove cropped image without transcription, and create txt file for the one aligned
-    
+
     Parameters:
         acceptlist : 
             List of cropped image acceptation
@@ -119,28 +126,30 @@ def curate_alignments(acceptlist:list, filename:str )->None :
         None 
     """
 
-    for cropped_dir, subfolders, files in os.walk("manual_align"+os.sep+filename) :
-        for file in files :
-            if file.endswith(".gt.txt") :
+    for cropped_dir, subfolders, files in os.walk("manual_align"+os.sep+filename):
+        for file in files:
+            if file.endswith(".gt.txt"):
                 continue
             crop_count = int(file.split("_")[-1][:-4])
             # Remove cropped image with no transcription
-            if acceptlist[crop_count][0] == 0 :
+            if acceptlist[crop_count][0] == 0:
                 os.remove("manual_align"+os.sep+filename+os.sep+file)
             # Create the text file associated
-            else :
-                txt_filename  = remove_additionnal_dots(file[:-4]+".gt.txt")
-                with open("manual_align"+os.sep+filename+os.sep+txt_filename, 'w', encoding="UTF-8", errors="ignore") as newtxt :
+            else:
+                txt_filename = remove_additionnal_dots(file[:-4]+".gt.txt")
+                with open("manual_align"+os.sep+filename+os.sep+txt_filename, 'w', encoding="UTF-8", errors="ignore") as newtxt:
                     newtxt.write(acceptlist[crop_count][1])
 
-                os.rename(cropped_dir+os.sep+file, cropped_dir+os.sep+remove_additionnal_dots(file))
+                os.rename(cropped_dir+os.sep+file, cropped_dir +
+                          os.sep+remove_additionnal_dots(file))
 
     print("Folder tmp"+os.sep+filename+" is curated.")
 
-def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
+
+def generate_manual_alignments(number: int = -1, skip: int = 0) -> None:
     """
     Will generate n numbers of webpage for manual alignments
-    
+
     Parameters:
         number : 
             Number of webpage to generate
@@ -148,7 +157,7 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
     Returns:
         None 
     """
-        
+
     # Get last monitoring data
     segment_stats_path = "tmp"+os.sep+"save"+os.sep+"segment_stats"
     segments_path = "tmp"+os.sep+"save"+os.sep+"segment"
@@ -158,31 +167,33 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
     last_json = files[(len(files)//2-1)]
     with open(segment_stats_path+os.sep+last_json, "r", encoding="UTF-8", errors='ignore') as stats_file:
         segment_stats = ujson.load(stats_file)[1]
-
     # Skip image that have too few images (=noises detected) plus a set number of skip in argument
-    skip_count= 0
-    while segment_stats[skip_count][4] < 5 and segment_stats[skip_count][1] == 0 :
-        skip_count+=1
-    total_skip = skip_count+skip if skip_count+skip < len(segment_stats) else len(segment_stats)
+    skip_count = 0
+    while segment_stats[skip_count][4] < 5 and segment_stats[skip_count][1] == 0:
+        skip_count += 1
+
+    total_skip = skip_count+skip if skip_count + \
+        skip < len(segment_stats) else len(segment_stats)
     segment_stats = segment_stats[total_skip:]
 
-    if number > -1 :
-        number = len(segment_stats) if number+total_skip > len(segment_stats) else number+total_skip
+    if number > -1:
+        number = len(segment_stats) if number + \
+            total_skip > len(segment_stats) else number+total_skip
         segment_stats = segment_stats[total_skip:number]
     print("Look for images up to the number "+str(number))
 
-    progress_count= 0
-    for cropped_path, usage_ratio, used, total, usable in segment_stats : 
-        filename= cropped_path.split(os.sep)[-1]
-        images =[]
+    progress_count = 0
+    for cropped_path, usage_ratio, used, total, usable in segment_stats:
+        filename = cropped_path.split(os.sep)[-1]
+        images = []
 
         # If a list of curated cropped already exist skip
         acceptlist_path = "manual_align"+os.sep+filename[:-4]+".json"
-        if os.path.exists(acceptlist_path) :
+        if os.path.exists(acceptlist_path):
             with open(acceptlist_path, "r", encoding="UTF-8", errors='ignore') as segment_file:
                 acceptlist = ujson.load(segment_file)
                 curate_alignments(acceptlist, filename)
-        else :
+        else:
 
             os.makedirs("manual_align"+os.sep+filename, exist_ok=True)
             # Load segmentation data
@@ -214,33 +225,37 @@ def generate_manual_alignments(number:int=-1, skip:int =0) -> None :
                 # Skip images that are too 'small'
                 if w < 0.2*width:
                     continue
-                cropped_name ="manual_align"+os.sep+filename+os.sep+filename+"_"+str(crop_count)+".jpg" 
+                cropped_name = "manual_align"+os.sep+filename + \
+                    os.sep+filename+"_"+str(crop_count)+".jpg"
                 images.append(cropped_name)
                 cropped.save(cropped_name)
                 crop_count += 1
 
             # If no crop can be manually aligned skip
-            if crop_count == 0 :
+            if crop_count == 0:
                 os.removedirs("manual_align"+os.sep+filename)
                 continue
             img.close()
 
             text_ref = retrieve_transcription(filename)
-            generate_manual_align_webpage(filename, images, text_ref , usable )
-            progress_count+=1
-            print("Generated "+str(progress_count)+"/"+str(len(segment_stats))+" manual align webpage")
+            generate_manual_align_webpage(
+                filename, images, text_ref, usable, used)
+            progress_count += 1
+            print("Generated "+str(progress_count)+"/" +
+                  str(len(segment_stats))+" manual align webpage")
+
 
 if __name__ == '__main__':
 
     number_to_align = 10
     number_to_skip = 0
-    try :
-        if len(sys.argv) > 1 : 
+    try:
+        if len(sys.argv) > 1:
             number_to_align = int(sys.argv[1])
-            if len(sys.argv) > 2 : 
+            if len(sys.argv) > 2:
                 number_to_skip = int(sys.argv[2])
-    except :
+    except:
         print(__doc__)
         sys.exit()
 
-    generate_manual_alignments(number_to_align,number_to_skip)
+    generate_manual_alignments(number_to_align, number_to_skip)
