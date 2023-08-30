@@ -67,6 +67,7 @@ def get_letter_with_n_image(file: str, n: int = -1, loaded: dict = dict()) -> di
 
 def __copy_file(filepath: str, dir_target: str, file_rename: str = "") -> None:
     """
+    UNUSED
     Function for extracting a file, do nothing if the file doesn't exist
     Doesn't check if directory exist !
 
@@ -113,12 +114,11 @@ def batch_extract_copy(target: dict, output_dir: str = "batch_extract") -> None:
     os.makedirs(output_dir, exist_ok=True)
     for images in target.values():
         for image in images:
-            # For each images in the dictionnary's values, extract them to the specified folder
+            # For each images in the dictionary's values, extract them to the specified folder
             if os.path.exists(output_dir+os.sep+image) or os.path.exists(output_dir+os.sep+image[:-4]+"_left.jpg"):
-                # do not copy if image already extracted
+                # do not copy if image is already extracted
                 continue
             copy(image, output_dir)
-            # __copy_file(image, output_dir)
     logger.debug(
         "Extracted/copy all target images from dictionnary into "+output_dir)
 

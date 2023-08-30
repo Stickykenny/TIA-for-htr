@@ -317,7 +317,7 @@ def get_usable_alignments(associations: dict, indexes: list) -> tuple:
     return associations, indexes
 
 
-def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> None:
+def align_cropped(lst: list, indexes: list, filepath: str) -> None:
     """
     For each alignment, create the pair text-image
 
@@ -328,8 +328,6 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
             List of indexes of every pattern in the original ocr prediction
         filepath:
             path to the original image
-        checklist:
-            Set of all images already cropped
 
     Returns:
         None

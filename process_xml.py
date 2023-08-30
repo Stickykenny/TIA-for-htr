@@ -1,3 +1,7 @@
+"""
+Contains function to process ALTO XML files obtained from the ocr prediction
+"""
+
 import re
 
 
@@ -58,4 +62,5 @@ def reduce_to_line(alto: str) -> str:
         content_pattern = re.escape('CONTENT="') + r'(.*?)' + re.escape('"')
         contents = " ".join(re.findall(content_pattern, "".join(lines)))
         alto = alto.replace("\n".join(
-            lines), "\t"*6+"<String CONTENT=\"" + contents+"\" "+position_informations+"</String>\n"+"\t"*5+"</TextLine>\n\n"+"\t"*5)
+            lines), "    "*6+"<String CONTENT=\"" + contents+"\" "+position_informations+"</String>\n"+"    "*5+"</TextLine>\n\n")
+    return alto

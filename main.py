@@ -18,6 +18,7 @@ import retrieve_match
 import utils_extract
 import preprocess_image
 import pdf_text_extract
+import add_align
 
 logger = logging.getLogger("TIA_logger")
 
@@ -214,13 +215,12 @@ def prepare_data(images_extract_dir: str, txt_extract_dir: str) -> dict:
         logger.info("No letter found, exiting program")
         sys.exit()
 
-    # utils_extract.batch_extract_copy(
-    #    letters_fetched, output_dir=images_extract_dir)
+    utils_extract.batch_extract_copy(
+        letters_fetched, output_dir=images_extract_dir)
 
     # -------------------------------------------------------------------
 
     # PDF Processing
-    # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
     processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
                     pdf_extract_dir="tmp"+os.sep+"extract_pdf", txt_extract_dir=txt_extract_dir)
@@ -253,13 +253,13 @@ if __name__ == "__main__":
     # ----------------------------------------------------
     # DATA PREPARATION for the MDV dataset ----------------
 
-    prepare_data(images_extract_dir, txt_extract_dir)
+    # prepare_data(images_extract_dir, txt_extract_dir)
 
     # End of DATA PREPARATION ----------------
     # ----------------------------------------------------
 
     # Process images (segment, predict, crop)
-    """
+
     logger.info("Processing images")
     process_images.process_images(images_extract_dir, crop=False)
 
@@ -272,7 +272,12 @@ if __name__ == "__main__":
     logger.info("Starting statistics calculations")
     monitoring.generate_compare_html("tmp"+os.sep+"cropped_match")
     monitoring.quantify_segment_used(
-        images_extract_dir, "tmp"+os.sep+"cropped_match", 'tmp/save/segment')
+        images_extract_dir, "tmp"+os.sep+"cropped_match", 'tmp'+os.sep+'save'+os.sep+'segment')
     logger.info("Finished statistics calculations")
-    logger.info("You can use add_align.py to manually add alignments") 
-    """
+
+    # Using statistics, provide a manual way to align the worst page aligned
+    logger.info(
+        "You can use add_align.py to manually add alignments, the 10 first worst page have been generated in manual_align/")
+    add_align.generate_manual_alignments(10)
+
+    print(add_align.__doc__)
