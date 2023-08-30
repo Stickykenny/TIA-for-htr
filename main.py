@@ -10,6 +10,7 @@ from shutil import copy as shutilcopy
 from time import time
 from monitoring import timeit
 import os
+import re
 import align
 import process_images
 import sys
@@ -21,7 +22,7 @@ import pdf_text_extract
 logger = logging.getLogger("TIA_logger")
 
 
-def retriever(cotes: dict, image_dir: str, output: str, result_filepath:str ) -> dict:
+def retriever(cotes: dict, image_dir: str, output: str, result_filepath: str) -> dict:
     """
     Retrieve informations to create the dictionnary {cote:[images]}
 
@@ -55,7 +56,8 @@ def retriever(cotes: dict, image_dir: str, output: str, result_filepath:str ) ->
     for directory, subfolder, files in os.walk(image_dir):
         path_images_dir = directory
         # List all images in current directory
-        images_files = retrieve_match.fetch_images(path_images_dir, path)
+        images_files = retrieve_match.fetch_images(
+            path_images_dir, path, recursive=False)
 
         # Logs & Statistics
         logger.info("For the folder  > "+path_images_dir)
@@ -100,7 +102,7 @@ def retriever(cotes: dict, image_dir: str, output: str, result_filepath:str ) ->
 
 
 @timeit
-def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf",txt_extract_dir:str="tmp"+os.sep+"extract_txt", c1: int = 4, c2: int = 9) -> None:
+def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf_extract_dir: str = "tmp"+os.sep+"extract_pdf", txt_extract_dir: str = "tmp"+os.sep+"extract_txt", c1: int = 4, c2: int = 9) -> None:
     """
     For all letters specified in letters_fetched, extract the text of the pdf associated into pdf_extract_dir if present in pdf_source
 
@@ -141,7 +143,25 @@ def processing_pdfs(pdf_source: str, csv_source: str, letters_fetched: dict, pdf
     pdf_text_extract.retrieve_pdfs_text(
         pdf_extract_dir, output_folder=txt_extract_dir, syllabification_cut=True)
 
-def prepare_data(images_extract_dir:str , txt_extract_dir:str) ->dict: 
+    # Now duplicate transcription for each images, rename them for each image their own transcription file
+    # It will for each image, find the associated transcriptions, then duplicate it with the image filename
+    destination_folder = "tmp"+os.sep+"extract_txt"+os.sep
+    for dirpath, subfolders, files in os.walk("tmp"+os.sep+"extract_image"):
+        for image in files:
+            if image.endswith((".jpg", ".png")):
+                image_cote = re.search(
+                    r"(\d+(?:-\d+)+(?:bis+)*(?: bis+)*(?:ter+)*(?: ter+)*)", image).group(1)
+                cote_file = image_cote+".gt.txt"
+                try:
+                    shutilcopy(destination_folder+cote_file,
+                               destination_folder+image[:-4]+".gt.txt")
+                except:
+                    logger.info("Error Copying "+cote_file)
+
+        break
+
+
+def prepare_data(images_extract_dir: str, txt_extract_dir: str) -> dict:
     """
     Process to retrieve only images with transcription (for the MDV dataset)
 
@@ -181,7 +201,8 @@ def prepare_data(images_extract_dir:str , txt_extract_dir:str) ->dict:
             "Loaded matches from previous result from "+result_filepath)
     else:
         # This one process may take time
-        cotes_associated = retriever(cotes, image_dir, result_filepath, result_filepath)
+        cotes_associated = retriever(
+            cotes, image_dir, result_filepath, result_filepath)
 
     # -------------------------------------------------------------------
 
@@ -193,18 +214,19 @@ def prepare_data(images_extract_dir:str , txt_extract_dir:str) ->dict:
         logger.info("No letter found, exiting program")
         sys.exit()
 
-    utils_extract.batch_extract_copy(
-        letters_fetched, output_dir=images_extract_dir)
-    
+    # utils_extract.batch_extract_copy(
+    #    letters_fetched, output_dir=images_extract_dir)
+
     # -------------------------------------------------------------------
 
     # PDF Processing
     # Unafected by image preprocessing, because the transcription extracted is referred by his cote/ID
     logger.info("Retrieving pdfs' content")
     processing_pdfs(pdf_source, csv_source, letters_fetched=letters_fetched,
-                   pdf_extract_dir="tmp"+os.sep+"extract_pdf", txt_extract_dir=txt_extract_dir)
+                    pdf_extract_dir="tmp"+os.sep+"extract_pdf", txt_extract_dir=txt_extract_dir)
 
     return letters_fetched
+
 
 if __name__ == "__main__":
 
@@ -221,25 +243,23 @@ if __name__ == "__main__":
     os.makedirs(txt_extract_dir, exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"match", exist_ok=True)
 
-
-    # ----------------------------------------------------
-    # DATA PREPARATION for the MDV dataset ----------------
-
-    #prepare_data(images_extract_dir,txt_extract_dir)
-
-    # End of DATA PREPARATION ----------------
-    # ----------------------------------------------------
-
-
+    # -------------------------------------------------------------------
     logger.info("Pre-processing images ...")
     # Pre-process image files
 
     # Split double pages into 2 single pages
-    #preprocess_image.batch_preprocess(images_extract_dir)
+    # preprocess_image.batch_preprocess(images_extract_dir)
 
-    # -------------------------------------------------------------------
+    # ----------------------------------------------------
+    # DATA PREPARATION for the MDV dataset ----------------
+
+    prepare_data(images_extract_dir, txt_extract_dir)
+
+    # End of DATA PREPARATION ----------------
+    # ----------------------------------------------------
 
     # Process images (segment, predict, crop)
+    """
     logger.info("Processing images")
     process_images.process_images(images_extract_dir, crop=False)
 
@@ -254,5 +274,5 @@ if __name__ == "__main__":
     monitoring.quantify_segment_used(
         images_extract_dir, "tmp"+os.sep+"cropped_match", 'tmp/save/segment')
     logger.info("Finished statistics calculations")
-    logger.info("You can use add_align.py to manually add alignments")
-
+    logger.info("You can use add_align.py to manually add alignments") 
+    """
