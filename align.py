@@ -8,11 +8,12 @@ import pickle
 import cv2 as cv
 import re
 from monitoring import timeit
-import ujson
+import shutil
 import logging
 logger = logging.getLogger("TIA_logger")
 
 image_extension = (".jpg", ".png")
+
 
 def levenshtein_dist(s1: str, s2: str) -> float:
     """
@@ -129,11 +130,9 @@ def txt_compare_open(image_filename: str) -> tuple:
         A string of the transcription and a list of every pattern found by the ocr
     """
 
-    name_pattern = re.compile("\d+(?:-\d+)*")
-    cote = name_pattern.search(image_filename).group(0)
-
     # Retrieve filepath of the ocr and manual transcription form the image filename
-    txt_manual_file = "tmp"+os.sep+"extract_txt"+os.sep+cote+".gt.txt"
+    txt_manual_file = "tmp"+os.sep+"extract_txt" + \
+        os.sep+image_filename[:-4]+".gt.txt"
     txt_ocr_file = "tmp"+os.sep+"ocr_result" + \
         os.sep+image_filename[:-4]+"_ocr.txt"
 
@@ -239,7 +238,7 @@ def check_dist_acceptance(x: int, dist: int):
     return False
 
 
-@timeit
+@ timeit
 def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
     """
     Find the best alignment for each pattern
@@ -312,33 +311,10 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
 
 def get_usable_alignments(associations: dict, indexes: list) -> tuple:
     """
-    Use LIS(Longuest Increasing Sequence) to remove alignments that are likely wrong
-
-    Parameters:
-        associations:
-            A list of [pattern, pattern_index, text_matched, distance_score]
-        indexes:
-            The list of index indicating where these match are in the text
-
-    Returns:
-        A list of usable [pattern, pattern_index, text_matched, distance_score] and his list of index indicating where these match are in the original list
+    Fodder function that do nothing for now, 
+    it could be used as an intermediary steps to clean up even more the alignments
     """
-    # TODO
     return associations, indexes
-    itr, lis_result = lis(indexes)
-    lst = list()
-    index_used = []
-    for i in range(len(associations)-1, -1, -1):
-        if itr == 0:
-            break
-        if itr == lis_result[i]:
-            lst.append(associations[i])
-            index_used.append(i)
-            itr -= 1
-
-    lst = list(reversed(lst))
-    index_used = list(reversed(index_used))
-    return lst, index_used
 
 
 def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> None:
@@ -369,80 +345,75 @@ def align_cropped(lst: list, indexes: list, filepath: str, checklist: set) -> No
 
     cropping_dir = "tmp"+os.sep+"cropped_match"+os.sep+filename
     segmented_img_dir = "tmp"+os.sep+"segmented"
-    os.makedirs(segmented_img_dir, exist_ok=True)
-    os.makedirs(cropping_dir, exist_ok=True)
 
-    # Align text-image for crop
-    img = cv.imread(filepath, cv.IMREAD_COLOR)
-    img_segmented = img.copy()
-    count_iterator = 0
+    try:
+        os.makedirs(segmented_img_dir, exist_ok=True)
+        os.makedirs(cropping_dir, exist_ok=True)
 
-    for i in range(len(predictions)):
+        # Align text-image for crop
+        img = cv.imread(filepath, cv.IMREAD_COLOR)
+        img_segmented = img.copy()
+        count_iterator = 0
 
-        # Crop the image
-        boundaries = predictions[i].line
-        x_min = x_max = boundaries[0][0]
-        y_min = y_max = boundaries[0][1]
-        for j in range(1, len(boundaries)):
+        for i in range(len(predictions)):
 
-            # If segment is used, draw it in blue
-            if i in indexes:
-                img_segmented = cv.line(img_segmented, boundaries[j-1],
-                                        boundaries[j], (255, 0, 0, 0.25), 5)
-            else:  # draw it in red
-                img_segmented = cv.line(img_segmented, boundaries[j-1],
-                                        boundaries[j], (0, 0, 255, 0.25), 5)
+            # Crop the image
+            boundaries = predictions[i].line
+            x_min = x_max = boundaries[0][0]
+            y_min = y_max = boundaries[0][1]
+            for j in range(1, len(boundaries)):
 
-            x = boundaries[j][0]
-            y = boundaries[j][1]
+                # If segment is used, draw it in blue
+                if i in indexes:
+                    img_segmented = cv.line(img_segmented, boundaries[j-1],
+                                            boundaries[j], (255, 0, 0, 0.25), 5)
+                else:  # draw it in red
+                    img_segmented = cv.line(img_segmented, boundaries[j-1],
+                                            boundaries[j], (0, 0, 255, 0.25), 5)
 
-            # Take larger coordinates for a rectangle cropping
-            x_min = (x if x < x_min else x_min)
-            x_max = (x if x > x_max else x_max)
-            y_min = (y if y < y_min else y_min)
-            y_max = (y if y > y_max else y_max)
+                x = boundaries[j][0]
+                y = boundaries[j][1]
 
-        # If the text matched is empty, skip
-        # If the segment width isn't at least 20% of the gtotal image width, skip (mot likely noise)
-        if i not in indexes:
-            continue
-        if (x_max-x_min) < 0.2*img.shape[1]:
-            continue
+                # Take larger coordinates for a rectangle cropping
+                x_min = (x if x < x_min else x_min)
+                x_max = (x if x > x_max else x_max)
+                y_min = (y if y < y_min else y_min)
+                y_max = (y if y > y_max else y_max)
 
-        # Create cropped file associated
-        cropped = img[y_min:y_max, x_min:x_max]
+            # If the text matched is empty, skip
+            # If the segment width isn't at least 20% of the gtotal image width, skip (mot likely noise)
+            if i not in indexes:
+                continue
+            if (x_max-x_min) < 0.2*img.shape[1]:
+                continue
 
-        # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
-        cropped_img_path = cropping_dir+os.sep + \
-            filename[:-4].replace(".", "")+"_"+str(count_iterator)+".jpg"
-        cv.imwrite(cropped_img_path, cropped)
+            # Create cropped file associated
+            cropped = img[y_min:y_max, x_min:x_max]
 
-        # Create txt file associated
-        with open(cropped_img_path[:-4]+'.gt.txt', 'w', encoding='UTF-8', errors="ignore") as f:
-            f.write(lst[count_iterator][2])
-        count_iterator += 1
-    logger.debug("Finished cropping " +
-                 str(count_iterator) + " times for "+filename)
+            # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
+            cropped_img_path = cropping_dir+os.sep + \
+                filename[:-4].replace(".", "")+"_"+str(count_iterator)+".jpg"
+            cv.imwrite(cropped_img_path, cropped)
 
-    # Save the original image with segmentation drawn on it
-    cv.imwrite(segmented_img_dir+os.sep +
-               filename[:-4]+"_segmented.jpg", img_segmented)
+            # Create txt file associated
+            with open(cropped_img_path[:-4]+'.gt.txt', 'w', encoding='UTF-8', errors="ignore") as f:
+                f.write(lst[count_iterator][2])
+            count_iterator += 1
+        logger.debug("Finished cropping " +
+                     str(count_iterator) + " times for "+filename)
 
-    # Remove directory if no alignment was made
-    if count_iterator == 0:
-        os.rmdir(cropping_dir)
+        # Save the original image with segmentation drawn on it
+        cv.imwrite(segmented_img_dir+os.sep +
+                   filename[:-4]+"_segmented.jpg", img_segmented)
 
-    # Update checklist to indicate this crop is done
-    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "r", encoding='UTF-8', errors="ignore") as file:
-        checklist = ujson.load(file)
-        checklist.append(cropping_dir)
-    with open("tmp"+os.sep+"save"+os.sep+"cropped_checklist.json", "w", encoding='UTF-8', errors="ignore") as file:
-        ujson.dump(checklist, file, indent=4)
-
-    logger.debug("Added "+cropping_dir + " to the checklist of cropped image")
+    except KeyboardInterrupt:
+        # If this process is interrupted, considering we use the presence of the folder
+        # to indicate files already processed, we remove the folder unfinished
+        shutil.rmtree(cropping_dir)
+        exit()
 
 
-@timeit
+@ timeit
 def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dict = None) -> None:
     """
     Batch process image files to create pairs of alignments text-images
@@ -453,24 +424,13 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
         printing:
             If True, logger will log in debug of each text-image alignment with their score
         specific_input:
-            Dictionary to specify specific images to process instead of all images in a directory 
+            Dictionary to specify specific images to process instead of all images in a directory
 
     Returns:
-        None    
+        None
     """
     logger.info("Started batch align text-images with segmented images")
     count = 0
-
-    # Use a list to verify whether the text-image alignment is already done for a file
-    checklist_path = "tmp"+os.sep+"save"+os.sep+"cropped_checklist.json"
-    if not (os.path.exists(checklist_path) or os.path.isfile(checklist_path)):
-        # Create new empty checklist is one doesn't exist
-        checklist = list()
-        with open(checklist_path, "w", encoding='UTF-8', errors="ignore") as file:
-            ujson.dump(checklist, file, indent=4)
-    else:
-        with open(checklist_path, "r", encoding='UTF-8', errors="ignore") as file:
-            checklist = ujson.load(file)
 
     if specific_input == None:
         # Process the entire directory
@@ -484,7 +444,7 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
                 filepath = dirpath+os.sep+filename
                 # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
                 count = apply_align(
-                    count, filename, filepath, len(filenames), checklist)
+                    count, filename, filepath, len(filenames))
 
     else:
         # Process only specified images
@@ -492,10 +452,10 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
             for filepath in specific_input[cote]:
                 filename = filepath.split(os.sep)[-1]
                 count = apply_align(
-                    count, filename, filepath, checklist)
+                    count, filename, filepath)
 
 
-def apply_align(count: int, filename: str, filepath: str, total: int, checklist: set = None) -> int:
+def apply_align(count: int, filename: str, filepath: str, total: int) -> int:
     """
     Apply alignment to create pairs of text-images
 
@@ -506,22 +466,15 @@ def apply_align(count: int, filename: str, filepath: str, total: int, checklist:
             Name of the image file
         filepath :
             Path to the image file
-        total : 
+        total :
             Total number of alignment (for statistic purpose)
-        checklist:
-            Set of all images already cropped
 
     Returns:
-        count + 1    
+        count + 1
     """
 
-    # Check if image was already cropped and aligned, then no need to align
-    if checklist and ("tmp"+os.sep+"cropped_match"+os.sep + filename) in checklist:
-        return count
-
-    # Skip specific images that do not possess MDV's writing
-    filename_lower = filename.lower()
-    if "cd" in filename_lower or "copie" in filename_lower or "cp" in filename_lower:
+    # Check if folder for cropped image is already present, if yes it means the file was already aligned
+    if os.path.exists("tmp"+os.sep+"cropped_match"+os.sep + filename):
         return count
 
     logger.info("Align " + filepath + " " + str(count)+"/"+str(total))
@@ -536,12 +489,13 @@ def apply_align(count: int, filename: str, filepath: str, total: int, checklist:
     associations, indexes = align_patterns(
         txt_ocr, txt_manual)
 
-    # TODO When implemented will curate the alignments
+    # Does nothing as of now
+    # When implemented will curate the alignments
     lst_alignments_usable, index_used = get_usable_alignments(
         associations, indexes)
 
     # Crop and produce every pair of text-image
-    align_cropped(lst_alignments_usable, index_used,  filepath, checklist)
+    align_cropped(lst_alignments_usable, index_used,  filepath)
 
     count += 1
     logger.debug("Cropped a total of "+str(count)+" images")

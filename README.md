@@ -93,7 +93,7 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 - For the pre-processing, delete `tmp/extract_image` and `tmp/save/split_status.json`
 - For the segmentation, delete `tmp/save/segment/` and `tmp/save/ocr_save/`
 - For the OCR, delete `tmp/save/ocr_save/`
-- For the alignments, delete `/tmp/cropped_checklist.json` and `tmp/cropped_match/`
+- For the alignments, delete `tmp/cropped_match/`
 - For the manual alignments, delete `jsons in the manual_align/` folder
 
 # Project Structure
