@@ -292,18 +292,21 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
         # A distance too great is ignored
         if check_dist_acceptance(len(pattern), min_normalized):
 
-            associations.append([
-                pattern, pattern_index, text_complete, scores[index]])
-            indexes.append(pattern_index)
+            # Doesn't accept small alignment
+            if len(text_complete) > 25:
 
-            # if True, if will log a trace of every alignment done ( cause a lot of logs )
-            if printing:
-                logger.debug("For : "+str(pattern)+" | >> dist score : " +
-                             str(scores[index]/len(pattern)) + "\t\t\t at index : "+str(index))
-                logger.debug("\t "+text[index:index+len(pattern)])
-                logger.debug("\t "+text_complete)
-                logger.debug("WER : "+str(wer) +
-                             ", CER : "+str(cer))
+                associations.append([
+                    pattern, pattern_index, text_complete, scores[index]])
+                indexes.append(pattern_index)
+
+                # if True, if will log a trace of every alignment done ( cause a lot of logs )
+                if printing:
+                    logger.debug("For : "+str(pattern)+" | >> dist score : " +
+                                 str(scores[index]/len(pattern)) + "\t\t\t at index : "+str(index))
+                    logger.debug("\t "+text[index:index+len(pattern)])
+                    logger.debug("\t "+text_complete)
+                    logger.debug("WER : "+str(wer) +
+                                 ", CER : "+str(cer))
 
         pattern_index += 1
     return associations, indexes
@@ -366,6 +369,7 @@ def align_cropped(lst: list, indexes: list, filepath: str) -> None:
                     img_segmented = cv.line(img_segmented, boundaries[j-1],
                                             boundaries[j], (255, 0, 0, 0.25), 5)
                 else:  # draw it in red
+
                     img_segmented = cv.line(img_segmented, boundaries[j-1],
                                             boundaries[j], (0, 0, 255, 0.25), 5)
 
@@ -380,9 +384,15 @@ def align_cropped(lst: list, indexes: list, filepath: str) -> None:
 
             # If the text matched is empty, skip
             # If the segment width isn't at least 20% of the gtotal image width, skip (mot likely noise)
-            if i not in indexes:
-                continue
+
             if (x_max-x_min) < 0.2*img.shape[1]:
+                boundaries = predictions[i].line
+                for j in range(1, len(boundaries)):
+
+                    img_segmented = cv.line(img_segmented, boundaries[j-1],
+                                            boundaries[j], (80, 165, 255, 1), 5)
+                continue
+            if i not in indexes:
                 continue
 
             # Create cropped file associated
