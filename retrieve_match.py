@@ -44,7 +44,7 @@ def fetch_images(directory: str, path: bool, recursive: bool = True) -> list:
             break
 
     logger.debug("Found "+str(len(images_files))+" images inside " +
-                 directory + " recurssively" if recursive else "without recursion")
+                 directory + " recursively" if recursive else "without recursion")
     return images_files
 
 
@@ -150,5 +150,3 @@ def __compare_match(cotes, count, cotes_availables, files, current_size, i):
                     return cotes, count, cotes_availables, files, current_size, 0
     else:
         return cotes, count, cotes_availables, files, current_size, i+1
-
-

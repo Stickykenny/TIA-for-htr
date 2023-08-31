@@ -7,6 +7,7 @@ import os
 import fitz  # import PyMuPdf better than PyPDF due to spaces appearing in words
 import logging
 from monitoring import timeit
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 logger = logging.getLogger("TIA_logger")
@@ -119,11 +120,13 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, syllabificatio
             logger.info("Check "+os.getcwd()+os.sep+"regroup.txt")
             return
 
-        # If syllabification_cut
+        # If syllabification_cut, cut syllabification, also post-process the text
+        # It will be all lowercased
         with open("regroup.txt", "r", encoding='UTF-8', errors='ignore') as regroup_file:
             regrouped_text = regroup_file.read()
 
         regrouped_text_cleaned = cut_syllabification(regrouped_text)
+
         curated_texts = regrouped_text_cleaned.split(pages_separator)
         index = 0
         for file in pdf_files:
@@ -132,7 +135,12 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, syllabificatio
                 continue
             new_filename = file[:-3]+"gt.txt"
             with open(output_folder+os.sep+new_filename, 'w+', encoding='UTF-8', errors="ignore") as new_file:
-                new_file.write(curated_texts[index])
+
+                # In the transcription unreadable characters that were meant to be here are indicated uding []
+                # We remove them because the OCR wouldn't be able to see them either.
+                cleaned_text = re.sub(
+                    r'\[[^]]*\]', '', curated_texts[index]).lower()
+                new_file.write(cleaned_text)
                 index += 1
 
         os.remove("regroup.txt")
@@ -147,4 +155,3 @@ def retrieve_pdfs_text(path_pdfs_dir: str, regroup: bool = False, syllabificatio
             with open(output_folder+os.sep+new_filename, 'w', encoding='UTF-8', errors="ignore") as new_file:
                 new_file.write(extract_pdf_text(path_pdfs_dir+os.sep+file))
         logger.info("Check "+os.getcwd()+os.sep+output_folder+os.sep)
-

@@ -143,7 +143,7 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
             segment_save = "tmp"+os.sep+"save"+os.sep + \
                 "segment"+os.sep+filename+'_segment.json'
             alto_xml_save = "tmp"+os.sep+"save"+os.sep + \
-                "ocr_serialized "+os.sep+filename+'_ocr.xml'
+                "ocr_serialized"+os.sep+filename+'_ocr.xml'
 
             if os.path.exists(predict_backup) and os.path.isfile(predict_backup):
                 # If the ocr result/predict_backup already exists, then there is no need to process the associated image
@@ -174,13 +174,14 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
                 predictions = ocr_img(model, im, baseline_seg, filename)
                 ocr_count += 1
 
-                # ALTO XML, predictions serialized format
-                if not os.path.exists(alto_xml_save):
-                    alto = serialize_alto(filepath, predictions)
-                    with open(alto_xml_save, 'w', encoding="UTF-8", errors="ignore") as fp:
-                        fp.write(alto)
+            # ALTO XML, predictions serialized format
+            if not os.path.exists(alto_xml_save):
+                logger.debug("Starting Serialization")
+                alto = serialize_alto(filepath, predictions)
+                with open(alto_xml_save, 'w', encoding="UTF-8", errors="ignore") as fp:
+                    fp.write(alto)
 
             nb_img_processed += 1
             im.close()
-            logger.debug("Done with "+str(nb_img_processed)+" images, a total of " + str(segment_count) +
+            logger.debug("Done with "+filename+", "+str(nb_img_processed)+" images, a total of " + str(segment_count) +
                          " segmentation and " + str(ocr_count) + " ocr were done")
