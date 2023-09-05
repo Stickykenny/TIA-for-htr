@@ -1,16 +1,20 @@
 """
 retrieve_match.py: Contains functions for the task of fetching the usable data
+This function is highly tailored for the MDV database
 """
+# -----------------------------------
+# Helper of what should the dictionary contain
 
 # Dictionary
 # cotes : [ cote : autographe_fullname]
 # cotes_available : [ cote : [ list_imagefiles ]]
+# -----------------------------------
+
 
 import os
 import re
 import logging
 logger = logging.getLogger("TIA_logger")
-
 image_extension = (".jpg", ".png")
 
 

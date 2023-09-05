@@ -1,13 +1,13 @@
 """
 utils_extract.py: Contains functions related to extracting informations/data
 """
+
 from monitoring import timeit
 import os
 from shutil import copy, move
 import csv
 import logging
 import pickle
-import sys
 logger = logging.getLogger("TIA_logger")
 
 
@@ -234,24 +234,9 @@ def check_pairs(parent_folder: str) -> bool:
     Returns :
         True if every pairs of text-image is present
     """
-    directory = list(os.walk(parent_folder))[0]
+    directory = list(os.walk(parent_folder))
     files = set(directory[2])
     for filename in files:
         if filename.endswith(".jpg"):
             if filename[:-4]+".gt.txt" not in files:
                 print(filename)
-
-
-if __name__ == "__main__":
-
-    # Utility function that will move out all files from their respective folder
-    # It will also print all files missing their transcription file ".gt.txt"
-    if len(sys.argv) > 1:
-        root_folder = sys.argv[1]
-        if not os.path.exists(root_folder):
-            pass
-        move_files_to_parent_directory(root_folder)
-        check_pairs(root_folder)
-    pass
-# Example
-# python3 utils_extract.py ./test/kraken_train/set4/

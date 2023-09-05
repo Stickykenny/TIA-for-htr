@@ -99,17 +99,13 @@ def serialize_alto(image_filepath: str, predictions: list) -> str:
 
 
 @timeit
-def process_images(main_dir: str, crop: bool = False, specific_input: dict = dict()) -> None:
+def process_images(main_dir: str) -> None:
     """
-    For all images in a directory, apply segmentation, predictions and cropping
+    For all images in a directory, apply segmentation and prediction
 
     Parameters :
         main_dir :
             Directory in which images are located
-        crop :
-            If True, produce all cropped segmentations images in ./cropped/
-        specific_input :
-            Dictionnary {cote:[images]} indicating which images to process
 
     Returns :
         None
@@ -138,6 +134,7 @@ def process_images(main_dir: str, crop: bool = False, specific_input: dict = dic
 
             # Segmentation & Prediction
 
+            # Path to the saved data
             predict_backup = "tmp"+os.sep+"save"+os.sep + \
                 "ocr_save"+os.sep+filename+'_ocr.pickle'
             segment_save = "tmp"+os.sep+"save"+os.sep + \

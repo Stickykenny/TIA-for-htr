@@ -12,6 +12,7 @@ import ujson
 logger = logging.getLogger("TIA_logger")
 image_extension = (".jpg", ".png")
 
+
 def setup_logger():
     """
     Setup the default logger
@@ -109,11 +110,12 @@ def generate_compare_html(source_dir: str) -> None:
                 os.sep+directory.split(os.sep)[-1]+".html"
             with open(image_cropping_preview, 'w', encoding='UTF-8', errors="ignore") as cropping_html:
 
-                # Write the base of the file
+                # Write the header of the file
                 cropping_html.write('''<!DOCTYPE html>
                             <html lang="en">
                             <head>
                             <meta charset="UTF-8">''')
+                # Have the title be the path to the cropped images
                 cropping_html.write(
                     '<title>'+os.sep.join(image_cropping_preview.split(os.sep)) + " cropped" + '</title>')
                 # Add a script to toggle show/hide cropping of a folder
@@ -249,11 +251,3 @@ def quantify_segment_used(image_dir: str, cropped_dir: str, segment_dir: str) ->
         images_data, key=lambda x:(x[1], x[4]))])
     with open("tmp"+os.sep+"save"+os.sep+"segment_stats"+os.sep+"distribution_datas"+date+".json", "w", encoding="UTF-8", errors="ignore") as new_json:
         ujson.dump(data, new_json, indent=4)
-
-
-if __name__ == "__main__":
-
-    cropped_dir = "tmp"+os.sep+"cropped_match"
-    image_dir = "tmp"+os.sep + "extract_image"
-    generate_compare_html(cropped_dir)
-    quantify_segment_used(image_dir, cropped_dir, 'tmp/save/segment')

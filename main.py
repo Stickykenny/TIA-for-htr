@@ -266,7 +266,7 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------
 
     # Alignment text-image of cropped part of an image
-    align.batch_align_crop(images_extract_dir)
+    align.batch_align_crop(images_extract_dir, printing=True)
 
     # Statistics
     logger.info("Starting statistics calculations")

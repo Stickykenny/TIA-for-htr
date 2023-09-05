@@ -1,3 +1,7 @@
+"""
+preprocess_image.py: Contains functions for pre-processing images, for now it only split double pages into single pages
+"""
+
 import os
 import numpy as np
 import cv2 as cv
@@ -7,6 +11,7 @@ import ujson
 import logging
 logger = logging.getLogger("TIA_logger")
 image_extension = (".jpg", ".png")
+
 
 def detect_split(gray_img: Image, center_dist: int = 0.05, steps: int = 10) -> int:
     """
@@ -52,11 +57,14 @@ def split_image(image_filepath: str, split_status_path) -> bool:
     Parameters :
         image_filepath :
             Filepath to the image
+        split_status_path : 
+            Filepath of the json file containing information of the split state of the images
 
     Returns :
         True if the image was split, False if not split
     """
 
+    # It is implemented so that files suffixed "_right.jpg" and "_left.jpg" are considered already splitted
     if image_filepath.endswith("_right.jpg") or image_filepath.endswith("_left.jpg"):
         # Does not split already splitted images
         return False
@@ -68,6 +76,7 @@ def split_image(image_filepath: str, split_status_path) -> bool:
         return False
 
     img = cv.imread(image_filepath)
+
     # If height > width, then it is not a double page
     if img.shape[1] > img.shape[0]:
         double_page = False
@@ -126,7 +135,7 @@ def batch_preprocess(maindir: str) -> None:
         None
     """
 
-    # Using a dictionnary as a checkpoint to know if an image was already processed
+    # Using a dictionary as a checkpoint to know if an image was already processed
     # Each value means a different case
     # { 0: no need to split, 1 : already splitted,  2 : left split, 3 : right split }
     split_status_path = "tmp"+os.sep+"save"+os.sep+"split_status.json"
