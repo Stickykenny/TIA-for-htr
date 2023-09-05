@@ -12,6 +12,7 @@ import shutil
 import logging
 logger = logging.getLogger("TIA_logger")
 
+
 image_extension = (".jpg", ".png")
 
 
@@ -82,6 +83,7 @@ def calculate_error_rate(pattern, reference, norm=True, percent=False):
 
 def lis(arr: list) -> tuple:
     """
+    UNUSED
     Longuest increasing sequence, dynamic programming
 
     Parameters :
@@ -219,7 +221,10 @@ def check_dist_acceptance(x: int, dist: int):
     This math function was created as a separator between acceptable alignments and non-acceptable alignments
 
     Parameters:
-        x =
+        x : 
+            Value x, corresponding the lenght of the OCR pattern
+        dist : 
+            Value y, minimal edit distance of the OCR pattern
 
     Returns:
         True if dist if smaller than the custom math function
@@ -259,6 +264,7 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
     # associations = [ [pattern, pattern_index, text_matched, distance score]  , [ ... ] , ... ]
     associations = []
     pattern_index = 0
+    text = text.replace("\n", " ")
 
     # For each pattern found by the ocr
     # 1/ Align them in the original text using hamming distance
@@ -289,15 +295,15 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
         if min_normalized > cer:
             min_normalized = cer
 
-        # A distance too great is ignored
-        if check_dist_acceptance(len(pattern), min_normalized):
+        # Alignment to a smalll text is too much of a hazard
+        if len(text_complete) > 15:
 
-            # Doesn't accept small alignment
-            if len(text_complete) > 25:
+            # A distance too great is ignored
+            if check_dist_acceptance(len(pattern), min_normalized):
 
                 associations.append([
                     pattern, pattern_index, text_complete, scores[index]])
-                indexes.append(pattern_index)
+                indexes.append(index)
 
                 # if True, if will log a trace of every alignment done ( cause a lot of logs )
                 if printing:
@@ -314,23 +320,24 @@ def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
 
 def get_usable_alignments(associations: dict, indexes: list) -> tuple:
     """
-    Fodder function that do nothing for now, 
+    Fodder function that do nothing for now,
     it could be used as an intermediary steps to clean up even more the alignments
     """
     return associations, indexes
 
 
-def align_cropped(lst: list, indexes: list, filepath: str) -> None:
+def align_cropped(lst: list, indexes_origin: list, filepath: str) -> None:
     """
     For each alignment, create the pair text-image
 
     Parameters:
         lst:
             A list of curated [pattern, pattern_index, text_matched, distance_score]
-        indexes :
+        indexes_origin :
             List of indexes of every pattern in the original ocr prediction
+            Unused in this function
         filepath:
-            path to the original image
+            Path to the original image
 
     Returns:
         None
@@ -346,6 +353,8 @@ def align_cropped(lst: list, indexes: list, filepath: str) -> None:
 
     cropping_dir = "tmp"+os.sep+"cropped_match"+os.sep+filename
     segmented_img_dir = "tmp"+os.sep+"segmented"
+
+    indexes = [i[1] for i in lst]
 
     try:
         os.makedirs(segmented_img_dir, exist_ok=True)
@@ -383,9 +392,11 @@ def align_cropped(lst: list, indexes: list, filepath: str) -> None:
                 y_max = (y if y > y_max else y_max)
 
             # If the text matched is empty, skip
-            # If the segment width isn't at least 20% of the gtotal image width, skip (mot likely noise)
 
+            # If the segment width isn't at least 20% of the total image width, skip (most likely noise)
+            # Also re-draw them in orange (less visible)
             if (x_max-x_min) < 0.2*img.shape[1]:
+
                 boundaries = predictions[i].line
                 for j in range(1, len(boundaries)):
 
@@ -398,7 +409,7 @@ def align_cropped(lst: list, indexes: list, filepath: str) -> None:
             # Create cropped file associated
             cropped = img[y_min:y_max, x_min:x_max]
 
-            # new filepath,  also remove additionnal "." / dots due to kraken/ketos implementation
+            # new filepath,  also remove additionnal "." = dots due to kraken/ketos implementation
             cropped_img_path = cropping_dir+os.sep + \
                 filename[:-4].replace(".", "")+"_"+str(count_iterator)+".jpg"
             cv.imwrite(cropped_img_path, cropped)
@@ -416,13 +427,13 @@ def align_cropped(lst: list, indexes: list, filepath: str) -> None:
 
     except KeyboardInterrupt:
         # If this process is interrupted, considering we use the presence of the folder
-        # to indicate files already processed, we remove the folder unfinished
+        # to indicate files are already processed, we remove the folder unfinished
         shutil.rmtree(cropping_dir)
         exit()
 
 
 @ timeit
-def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dict = None) -> None:
+def batch_align_crop(image_dir: str, printing: bool = False) -> None:
     """
     Batch process image files to create pairs of alignments text-images
 
@@ -431,39 +442,27 @@ def batch_align_crop(image_dir: str, printing: bool = False, specific_input: dic
             Directory where images are located
         printing:
             If True, logger will log in debug of each text-image alignment with their score
-        specific_input:
-            Dictionary to specify specific images to process instead of all images in a directory
 
     Returns:
         None
     """
     logger.info("Started batch align text-images with segmented images")
     count = 0
+    # Process the entire directory
+    for (dirpath, subdirnames, filenames) in os.walk(image_dir):
+        for filename in filenames:
 
-    if specific_input == None:
-        # Process the entire directory
-        for (dirpath, subdirnames, filenames) in os.walk(image_dir):
-            for filename in filenames:
+            # Skip non image file
+            if not filename.lower().endswith(image_extension):
+                continue
 
-                # Skip non image file
-                if not filename.lower().endswith(image_extension):
-                    continue
-
-                filepath = dirpath+os.sep+filename
-                # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
-                count = apply_align(
-                    count, filename, filepath, len(filenames))
-
-    else:
-        # Process only specified images
-        for cote in specific_input:
-            for filepath in specific_input[cote]:
-                filename = filepath.split(os.sep)[-1]
-                count = apply_align(
-                    count, filename, filepath)
+            filepath = dirpath+os.sep+filename
+            # Process the entire directory, thism ay cause error due to image present but not yet ocr-ed
+            count = apply_align(
+                count, filename, filepath, len(filenames), printing=printing)
 
 
-def apply_align(count: int, filename: str, filepath: str, total: int) -> int:
+def apply_align(count: int, filename: str, filepath: str, total: int, printing: bool = False) -> int:
     """
     Apply alignment to create pairs of text-images
 
@@ -476,6 +475,8 @@ def apply_align(count: int, filename: str, filepath: str, total: int) -> int:
             Path to the image file
         total :
             Total number of alignment (for statistic purpose)
+        printing : 
+            If True, logger will log in debug of each text-image alignment with their score
 
     Returns:
         count + 1
@@ -495,7 +496,7 @@ def apply_align(count: int, filename: str, filepath: str, total: int) -> int:
 
     # Align each pattern of the ocr to the transcription
     associations, indexes = align_patterns(
-        txt_ocr, txt_manual)
+        txt_ocr, txt_manual, printing=printing)
 
     # Does nothing as of now
     # When implemented will curate the alignments
