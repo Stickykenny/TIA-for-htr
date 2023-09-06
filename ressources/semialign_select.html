@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title> TITLE </title>
+    <link rel="stylesheet" href="../../ressources/semialign_select.css">
+</head>
+
+<body>
+    CONTENT
+
+    <script defer>
+        totalCrop = TOTALCROP;
+        var filename = "TITLE"
+        filename = filename.substring(0, filename.length - 4);
+
+        const clickableTexts = document.getElementsByClassName('wrapper');
+
+        console.log(clickableTexts)
+        clickableTexts.forEach(text => {
+
+            // Left click to set the start of the transcription
+            text.addEventListener('click', function (event) {
+
+                console.log(text.classList)
+                if ("selected" in text.classList) {
+                    text.classList.remove("selected")
+                    text.classList.ass("unselected")
+                }
+                else {
+                    text.classList.add("selected")
+                    text.classList.remove("unselected")
+                }
+
+            });
+
+
+        });
+
+        function DownloadFile(content, filename, mimetype) {
+            var blob = new Blob([content], {
+                type: mimetype,
+            });
+            const url = URL.createObjectURL(blob);
+
+            // Fake a client click on a download href
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+
+            document.body.appendChild(a);
+            a.click();
+
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+    </script>
+</body>

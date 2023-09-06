@@ -1,0 +1,45 @@
+.wrapper {
+  border-color: black;
+  border-style: dotted;
+  display: flex;
+}
+
+.wrapper:hover {
+  opacity: 50%;
+}
+
+.selected {
+  border-color: greenyellow;
+  border-style: double;
+}
+
+.unselected {
+  border-color: red;
+  border-style: dotted;
+}
+
+.left {
+  width: 50vw;
+  border: 2px;
+  text-align: right;
+}
+
+.right {
+  width: 47vw;
+  left: 5px;
+  float: right;
+  text-align: left;
+  opacity: 100;
+}
+
+.row {
+  margin-bottom: 30px;
+  height: 60px;
+  max-height: 60px;
+}
+img {
+  height: 100%;
+  width: 50vw;
+  max-width: 100%;
+  max-height: 60px;
+}
