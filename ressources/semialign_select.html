@@ -18,11 +18,13 @@
     </div>
 
     <script defer>
-        GenerateContent();
         totalCrop = TOTALCROP;
-        var filename = "TITLE"
+        var filename = "TITLE";
+        console.log(filename);
+
         filename = filename.substring(0, filename.length - 4);
 
+        console.log(filename)
         const clickableTexts = document.querySelectorAll('.wrapper');
 
         clickableTexts.forEach(text => {
@@ -44,30 +46,41 @@
 
         function GenerateContent() {
 
-            var values = [];
-            const wrapper = document.querySelectorAll('.wrapper');
+            const wrappers = document.querySelectorAll('.wrapper');
             const inputs = document.querySelectorAll('.valueSelected');
-
-             console.log(values);
-             
-             for (var i = 0; i < inputs.length; i++) {
-                console.log(wrapper[i].classList[1])
-                values.push(inputs[i]);
-            }
-
-            // Display the values (you can do whatever you want with them)
-            console.log(values);
 
             content = []
 
             for (var i = 0; i < inputs.length; i++) {
-                if (wrapper[i].classList[1] == "selected") {
-                    valid = 1;
-                }else {
-                    valid = 0;
-                }
-            }
 
+                // If selected, all alignments informations are collected
+                if (wrappers[i].classList[1] == "selected") {
+                    valid = 1;
+                    acceptedAlignment = wrappers[i].getElementsByClassName("valueSelected")[0].value;
+                    referenceText =  wrappers[i].getElementsByClassName("referenceText")[0].textContent;
+                    
+                    // Case no alignment was found, but a manual alignment was done
+                    if (referenceText == "No correct alignment was found") {
+                        referenceText = "";
+                    }
+
+
+                }else {
+                    // If unselected only the original OCR could be collected the rest
+                    valid = 0;
+                    acceptedAlignment = "";
+                    referenceText = "";
+                }
+                originalOCR=  wrappers[i].getElementsByClassName("valueSelected")[0].getAttribute("originalValue");                
+                content.push([valid,acceptedAlignment,referenceText, originalOCR])
+
+            }
+            console.log(content);
+
+
+            // Jsonify the content to download it
+            contentJSON = JSON.stringify(content)
+            DownloadFile(contentJSON, filename + ".json", "application/json")
             
             }
 
