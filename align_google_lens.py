@@ -3,14 +3,37 @@ import align
 import os
 import shutil
 from add_align import curate_alignments
+import ujson
 
 
 def init_glens_addon():
     tmp_folder = "glens"+os.sep+"juxta_tmp"
 
+    done_folder = "glens"+os.sep+"juxta_done"
+
+    os.makedirs(done_folder, exist_ok=True)
+
     os.makedirs(tmp_folder, exist_ok=True)
 
     checker = os.listdir(tmp_folder)
+
+    # Check for the existence of a JSON in manual_align/ meaning the file was already done,
+    # so we can go into the next juxtaposed image to prepare
+    if checker:
+        json_filename = checker[0].replace("_juxtaposed.jpg", ".json")
+        json_path = "manual_align"+os.sep+json_filename
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="UTF-8", errors='ignore') as segment_file:
+                acceptlist = ujson.load(segment_file)
+                filename = json_filename.replace(".json", ".jpg")
+                curate_alignments(acceptlist, filename, order=True)
+
+            # Clean and moved used files (juxtaposed used, selector webpage)
+            shutil.move(tmp_folder+os.sep +
+                        checker[0], done_folder+os.sep+checker[0])
+            html_file = filename.replace(".jpg", ".html")
+            shutil.move("glens"+os.sep+"choose_align"+os.sep +
+                        html_file, done_folder+os.sep+html_file)
 
     # If no file is found in glens/juxta_tmp
     # It will bring out one image for the user to upload to Google Lens
@@ -26,7 +49,6 @@ def init_glens_addon():
         exit()
 
     # Else
-
     file_juxta = checker[0]  # filename_juxtaposed.jpg
     file = file_juxta.replace("_juxtaposed", "")   # filename.jpg
 
@@ -40,28 +62,6 @@ def retrieve_multiline_text() -> str:
     Returns :
         The OCR result in one line
     """
-    unprocessed_ocr = """mdvocr Bond ja trouve. à semplis me drission.
-mdvocr aurons pé devance, plus il nous dédommagera
-mdvocr honde le Notre sera be tout les Mondes
-mdvocrvore vingt-cing francs, ne pouvant ton
-mdvocr envir diventage. "Il y a toughers quely mdvocr grave pour anster l'élan de mon Ahne.
-mdvocrois, m-ce pas ? Na! vela oss! as to je
-mdvocrit pas pourre
-mdvocr tu te la Serais par
-mdvocr je Torre tas moins avec l'affection d'iene
-mdvocr Bonne at tendre Soccer, et au Nom de
-mdvocr mon Mari
-mdvocrewis acine et charchal are Milien de toute nos
-mdvocr to fivile amed.
-mdvocr chosceline Valmore un
-mdvocr épreuve j'ai des momend
-mais
-mdvocr me end to yours soutenue par cette main Fevine
-mdvocr mdvocr nous déver, mon Bon Jely to air qual
-mdvocracia davoir également sempli la timme
-mdvocren minout to element, the mas Bien vivent
-mdvocr consolé des amitier légèren et oubliender de""".replace("\n", " ")
-    return unprocessed_ocr
     print("Enter/Paste your content. Ctrl-D or Ctrl-Z ( windows ) to save it.")
     contents = []
     while True:
@@ -148,9 +148,6 @@ def generate_web_alignment_selector(result, file):
 
 def retrieve_patterns(file):
     ocr_result_folder = "glens"+os.sep+"ocr_result"
-    done_folder = "glens"+os.sep+"juxta_done"
-
-    os.makedirs(done_folder, exist_ok=True)
     os.makedirs(ocr_result_folder, exist_ok=True)
 
     # This instruction will require user action to paste into the dialog box the result of Google Lens OCR

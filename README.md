@@ -32,7 +32,8 @@ Put all images into `tmp/extract_image` and their transcriptions into `tmp/extra
 (Like the name suggest files in `tmp/` may be altered)
 
 For the MDV dataset : <br>
-Put all images into the `images/` directory and all pdfs `MDV-site-Xavier-Lang/` or directly their txt files in `tmp/extract_txt`
+Put all images into the `images/` directory and all pdfs `MDV-site-Xavier-Lang/` or directly their txt files in `tmp/extract_txt` <br>
+This dataset possess it's own specifics : see [REMARKS.md](REMARKS.md)
 
 #### Command
 
@@ -131,6 +132,8 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
     |   |   └── >>> Contains dictionary of matches cotes-images as a pickle file, the filename is a hash of the result of os.walk(‘./images/)
     │   ├── ocr_save/
     |   |   └── >>> Contains ocr_record data obtained using Kraken prediction
+    │   ├── ocr_serialized/
+    |   |   └── >>> Contains ocr_record serialized into the ALTO format
     │   ├── segment/
     |   |   └── >>> Contains results of blla.segment() (= segmentation data)
     |   └── segment_stats/

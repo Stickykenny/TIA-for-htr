@@ -247,6 +247,7 @@ def check_dist_acceptance(x: int, dist: int):
 def align_patterns(patterns: list, text: str, printing: bool = True) -> tuple:
     """
     Find the best alignment for each pattern
+    It may return an empty list if no alignment was found
 
     Parameters:
         pattern:
