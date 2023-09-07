@@ -2,7 +2,7 @@
 This file will create an image juxtaposing multiple cropped images so that they can in one single image 
 before each cropped image will have an additional image 'mdvocr.png' to help locate the text
 
-Usage : generate_juxtaposed
+Usage : generate_juxtaposed.py
 """
 
 
@@ -56,12 +56,13 @@ def generate_juxtaposed():
         sizes = [img.size for img in images]
 
         # Get the width of the helper image after being resized
-        max_width = max(sizes, key=lambda sizes: sizes[1])
+        max_width = max(sizes, key=lambda sizes: sizes[1])[1]
         first_img_width_max = int(
-            helper_image.size[0]*max_width/helper_image.size[1])
+            (helper_image.size[0]*max_width)/(helper_image.size[1]))
 
         # Width of the new juxtaposed image ( with the addition of the helper image's width )
-        max_width = max([size[0] for size in sizes]) + first_img_width_max*1.1
+        max_width = int(max([size[0] for size in sizes]) +
+                        first_img_width_max*1.1)
 
         # Height of the new image
         sum_height = sum([int(size[1]+interline_space) for size in sizes])
@@ -98,6 +99,11 @@ def generate_juxtaposed():
         if progress_count % 10 == 0:
             print("juxtaposed "+str(progress_count)+"/"+str(len(walk_list)))
 
+        # Save the juxtaposed img into juxtaposed/
+        img_filename = dir.split(os.sep)[-1][:-4]
+        juxtaposed_image.save("juxtaposed"+os.sep +
+                              img_filename+"_juxtaposed.jpg")
+    juxtaposed_image.close()
     print("juxtaposed "+str(progress_count)+"/"+str(len(walk_list)))
     print("A total of "+str(skip_count) +
           " images were skipped, because they were already aligned")

@@ -16,8 +16,8 @@ Exemple of the steps to take:
     > Now will only remain pairs of text/image and the json
 
     You can increase the number to your convenience
-
 """
+
 import os
 import ujson
 from PIL import Image
@@ -111,7 +111,7 @@ def retrieve_transcription(filename: str) -> str:
     return txt_manual
 
 
-def curate_alignments(acceptlist: list, filename: str) -> None:
+def curate_alignments(acceptlist: list, filename: str, order: bool = False) -> None:
     """
     Remove cropped image without transcription, and create txt file for the one aligned
 
@@ -121,12 +121,21 @@ def curate_alignments(acceptlist: list, filename: str) -> None:
             [ O/1 , "transcription" ]
         filename :
             Name of the image file concerned
+        order : 
+            If True, files will be sorted in alphabetical order before being curated
+            (for the implementation with google Lens)
 
     Returns:
         None 
     """
 
     for cropped_dir, subfolders, files in os.walk("manual_align"+os.sep+filename):
+
+        # order is for the google lens usage implementation
+        # where files have lost their position meaning and are found using their alphabetical order
+        if order:
+            files = sorted(files)
+
         for file in files:
             if file.endswith(".gt.txt"):
                 continue
@@ -204,6 +213,7 @@ def generate_manual_alignments(number: int = -1, skip: int = 0) -> None:
 
             # Prepare the cropped images for the manual alignments
             crop_count = 0
+            name_count = 0
             for segment in segments["lines"]:
                 boundaries = segment["boundary"]
                 x_min = x_max = boundaries[0][0]
@@ -224,12 +234,14 @@ def generate_manual_alignments(number: int = -1, skip: int = 0) -> None:
 
                 # Skip images that are too 'small'
                 if w < 0.2*width:
+                    name_count += 1
                     continue
                 cropped_name = "manual_align"+os.sep+filename + \
                     os.sep+filename+"_"+str(crop_count)+".jpg"
                 images.append(cropped_name)
                 cropped.save(cropped_name)
                 crop_count += 1
+                name_count += 1
 
             # If no crop can be manually aligned skip
             if crop_count == 0:
