@@ -8,12 +8,13 @@
 </head>
 
 <body>
-    <div id="header"> TITLE <div id="countdown"></div></div>
+    <div id="header"> TITLE <div id="countdown"></div>
+    </div>
     <aside id="sidebar"><img id='hoverimg' src="../FULLIMAGE"></aside>
-    
-    
+
+
     <div id="top" style="text-align:center;"><img id='crop' style="min-width:500px;max-width:1000px"
-            alt="Image not shown correctly, try changing browser"></div>
+            alt="Image not shown correctly, try changing browser"> <br>COMMENT </div>
     <div id="bottom" fontsize="18px">
 
         SOURCE_TEXT
@@ -33,12 +34,14 @@
             const img = document.getElementById("crop");
             img.src = images[cropCount];
             const clickableTexts = document.querySelectorAll('.click_text');
+
             var startedSelect = false;
 
 
             clickableTexts.forEach(text => {
                 // Left click to set the start of the transcription
-                text.addEventListener('click', function (event) {;
+                text.addEventListener('click', function (event) {
+                    ;
                     event.preventDefault()
                     reset();
                     text.classList.add("startSelect");
@@ -47,7 +50,7 @@
                 });
                 // Right click to set the end of the transcription
                 text.addEventListener('contextmenu', function (event) {
-                    
+
                     event.preventDefault();
 
                     text.classList.add("endSelect")
@@ -146,7 +149,7 @@
                 a.click();
 
                 document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
+                URL.revokeObjectURL(url);
             }
 
         </script>

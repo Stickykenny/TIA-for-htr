@@ -8,35 +8,68 @@
 </head>
 
 <body>
+    <div style="text-align: center; margin-bottom: 10px;">
+    <button style="text-align: center; width:250px; height:50px" onclick="GenerateContent()">Validate alignments</button>
+    </div>
     CONTENT
 
+    <div style="text-align: center; margin-bottom: 10px; margin-top: 10px ;">
+        <button style="text-align: center; width:250px; height:50px" onclick="GenerateContent()">Validate alignments</button>
+    </div>
+
     <script defer>
+        GenerateContent();
         totalCrop = TOTALCROP;
         var filename = "TITLE"
         filename = filename.substring(0, filename.length - 4);
 
-        const clickableTexts = document.getElementsByClassName('wrapper');
+        const clickableTexts = document.querySelectorAll('.wrapper');
 
-        console.log(clickableTexts)
         clickableTexts.forEach(text => {
-
             // Left click to set the start of the transcription
             text.addEventListener('click', function (event) {
-
-                console.log(text.classList)
-                if ("selected" in text.classList) {
+                ;
+                event.preventDefault()
+                if (text.classList.contains("selected")) {
                     text.classList.remove("selected")
-                    text.classList.ass("unselected")
-                }
-                else {
-                    text.classList.add("selected")
+                    text.classList.add("unselected");
+                } else {
+                    text.classList.add("selected");
                     text.classList.remove("unselected")
                 }
 
             });
 
-
         });
+
+        function GenerateContent() {
+
+            var values = [];
+            const wrapper = document.querySelectorAll('.wrapper');
+            const inputs = document.querySelectorAll('.valueSelected');
+
+             console.log(values);
+             
+             for (var i = 0; i < inputs.length; i++) {
+                console.log(wrapper[i].classList[1])
+                values.push(inputs[i]);
+            }
+
+            // Display the values (you can do whatever you want with them)
+            console.log(values);
+
+            content = []
+
+            for (var i = 0; i < inputs.length; i++) {
+                if (wrapper[i].classList[1] == "selected") {
+                    valid = 1;
+                }else {
+                    valid = 0;
+                }
+            }
+
+            
+            }
 
         function DownloadFile(content, filename, mimetype) {
             var blob = new Blob([content], {
