@@ -1,3 +1,19 @@
+"""
+This file is similar to add_align.py in purpose but with Google Lens
+This file will single out a juxtaposed image for it to be OCRed by Google Lens,
+Then after the used entered the OCR result, a webpage will be created for the user to accept and correct the alignments
+
+Usage : align_google_lens.py
+
+Exemple of the steps to take:
+    > align_google_lens.py    ( It single out a juxtaposed image )
+    > <Use Google Lens on the image at glens/juxta_tmp>
+    > align_google_lens.py
+    > <Paste the OCR result from Google Lens, the program will generate a webpage at glens/choose_align>
+    > <Accept and correct the alignments, validate it then move the json produced/downloaded to manual_align/ >
+    > align_google_lens.py (It will curate the concerned image folder using the json and restart the process)
+
+"""
 
 import align
 import os
@@ -7,12 +23,16 @@ import ujson
 
 
 def init_glens_addon():
-    tmp_folder = "glens"+os.sep+"juxta_tmp"
+    """
+    Proceed to single out a juxtaposed image, also curate if json were produced and moved to concerned folder
 
+    Returns:
+        The filename that will be processed
+    """
+    tmp_folder = "glens"+os.sep+"juxta_tmp"
     done_folder = "glens"+os.sep+"juxta_done"
 
     os.makedirs(done_folder, exist_ok=True)
-
     os.makedirs(tmp_folder, exist_ok=True)
 
     checker = os.listdir(tmp_folder)
@@ -45,7 +65,8 @@ def init_glens_addon():
 
         shutil.move(selected_file, tmp_folder)
         print("Check here : " + tmp_folder)
-        print(" Image file to process in Google Lens : " + files[0])
+        print(
+            " Image file to process in Google Lens (Copy full text OCR and paste in terminal/console): " + files[0])
         exit()
 
     # Else
@@ -62,7 +83,7 @@ def retrieve_multiline_text() -> str:
     Returns :
         The OCR result in one line
     """
-    print("Enter/Paste your content. Ctrl-D or Ctrl-Z ( windows ) to save it.")
+    print("Enter/Paste your content.\n Use Ctrl-D or Ctrl-Z ( windows ) to save it.")
     contents = []
     while True:
         try:
@@ -75,8 +96,19 @@ def retrieve_multiline_text() -> str:
     return unprocessed_ocr
 
 
-def generate_web_alignment_selector(result, file):
+def generate_web_alignment_selector(result: list, file: str) -> None:
+    """
+    Generate the webpage for that for selecting and correcting alignments
 
+    Parameters:
+        result :
+            Results of the algorithmic alignments, the results are obtained with align.align_patterns()
+        file :
+            Filename of the image concerned
+
+    Returns:
+        None
+    """
     user_folder = "glens"+os.sep+"choose_align"
     os.makedirs(user_folder, exist_ok=True)
 
@@ -96,43 +128,55 @@ def generate_web_alignment_selector(result, file):
     html_code = '<div id="top" style="text-align: center">'
     index_used = []  # List of all images index index, we then use it to know which image didn't find an alignment
     # For every pattern align a row with image on the left and transcription on the right
+
+    reorder_div = []  # Used for re-ordering the div in their filename alphabetical order
+
+    # Image cropped that have found an alignment
     for i in range(len(result)):
 
         # Wrapper with an id
-        html_code += '<div class="wrapper selected" id="' + \
+        divbox = '<div class="wrapper selected" id="' + \
             images[result[i][1]-1]+'">'
 
         # Image on the left
-        html_code += '<div class="row left"><img id="'+images[result[i][1]-1]+'"  src="' + \
+        divbox += '<div class="row left"><img id="'+images[result[i][1]-1]+'"  src="' + \
             ".."+os.sep + ".."+os.sep + \
             images[result[i][1]-1]+'" alt="' + \
             images[result[i][1]-1]+'" ></div>'
         index_used.append(result[i][1]-1)
 
         # OCR and Transcription aligned on the right
-        html_code += '<div class="row right"><p> <input type="text" class="valueSelected" value="' + \
+        divbox += '<div class="row right"><p> <input type="text" class="valueSelected" value="' + \
             str(result[i][2]) + '" originalValue="'+str(result[i][2])+'" size="50" ><br><referenceText class="referenceText">' + \
             str(result[i][0])+'</referenceText><br></p></div>'
 
-        html_code += "</div>"
+        divbox += "</div>"
+        reorder_div.append([divbox, images[result[i][1]-1]])
 
-    # Additional image cropped that couldn't find a correct alignment
+    # Additional image cropped that couldn't find a correct alignment,
     for i in range(len(images)):
         if i not in index_used:
-            html_code += '<div class="wrapper unselected" id="' + \
+            divbox = '<div class="wrapper unselected" id="' + \
                 images[i]+'">'
 
-            html_code += '<div class="row left"><img id="'+images[i]+'"  src="' + \
+            divbox += '<div class="row left"><img id="'+images[i]+'"  src="' + \
                 ".."+os.sep + ".."+os.sep + \
                 images[i]+'" alt="' + \
                 images[i]+'" ></div>'
 
-            html_code += '<div class="row right"><p> <input type="text" class="valueSelected" originalValue="' + \
+            divbox += '<div class="row right"><p> <input type="text" class="valueSelected" originalValue="' + \
                 '" size="50" ><br><referenceText class="referenceText">' + \
                 "No correct alignment was found" + \
                 '</referenceText><br>' + '</p></div>'
 
-            html_code += "</div>"
+            divbox += "</div>"
+            reorder_div.append([divbox, images[i]])
+
+    # We reorder to fit alphabetical order
+    reorder_div = sorted(reorder_div, key=lambda x: x[1])
+
+    for divbox in reorder_div:
+        html_code += divbox[0]
 
     html_code += '</div>'
 
@@ -142,11 +186,27 @@ def generate_web_alignment_selector(result, file):
     webpage = webpage.replace("TITLE", file)
 
     # Create the webpage file
-    with open(user_folder+os.sep+file.replace('.jpg', '.html'), "w", encoding="UTF-8", errors="ignore") as new_page:
+    webpage_filepath = user_folder+os.sep+file.replace('.jpg', '.html')
+    with open(webpage_filepath, "w", encoding="UTF-8", errors="ignore") as new_page:
         new_page.write(webpage)
 
+    print("  -------  ")
 
-def retrieve_patterns(file):
+    print("Alignment selector was generated. Use "+webpage_filepath +
+          " to produce a JSON indicating which alignment are accepted.")
+
+
+def retrieve_patterns(file: str) -> str:
+    """
+    Retrieve patterns, by asking the user result of the OCR from Google Lens
+
+    Parameters:
+        file : 
+            Filename of the image concerned
+
+    Returns:
+        List of the pattern predicted by the OCR
+    """
     ocr_result_folder = "glens"+os.sep+"ocr_result"
     os.makedirs(ocr_result_folder, exist_ok=True)
 
