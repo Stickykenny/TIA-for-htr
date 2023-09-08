@@ -1,5 +1,9 @@
 """
 Contains function to process ALTO XML files obtained from the ocr prediction
+
+NOT YET IMPLEMENTED
+use remove_glyph() then reduce_to_line() on the alto file to clean the file
+It will clean the file to look like the one in https://github.com/alix-tz/peraire-ground-truth/tree/master
 """
 
 import re
@@ -28,6 +32,7 @@ def remove_glyph(alto: str) -> str:
 
 def reduce_to_line(alto: str) -> str:
     """
+    Require to run remove_glyph() before
     Reduce multi-line of informations of word into a line for the whole sentence in the ALTO file
 
     Parameters :

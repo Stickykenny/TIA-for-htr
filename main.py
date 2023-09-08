@@ -261,7 +261,7 @@ if __name__ == "__main__":
     # Process images (segment, predict, crop)
 
     logger.info("Processing images")
-    process_images.process_images(images_extract_dir, crop=False)
+    process_images.process_images(images_extract_dir)
 
     # -------------------------------------------------------------------
 

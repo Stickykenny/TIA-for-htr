@@ -113,6 +113,7 @@ def process_images(main_dir: str) -> None:
     # Create output directories
     os.makedirs("tmp"+os.sep+"save"+os.sep+"segment", exist_ok=True)
     os.makedirs("tmp"+os.sep+"save"+os.sep+"ocr_save", exist_ok=True)
+    os.makedirs("tmp"+os.sep+"save"+os.sep+"ocr_serialized", exist_ok=True)
 
     # All available extension, it may differ from what kraken can support
     image_extension = (".jpg", ".png", ".svg", "jpeg")
