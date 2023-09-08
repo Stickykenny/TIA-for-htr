@@ -20,11 +20,8 @@
     <script defer>
         totalCrop = TOTALCROP;
         var filename = "TITLE";
-        console.log(filename);
 
         filename = filename.substring(0, filename.length - 4);
-
-        console.log(filename)
         const clickableTexts = document.querySelectorAll('.wrapper');
 
         clickableTexts.forEach(text => {
@@ -81,7 +78,7 @@
             // Jsonify the content to download it
             contentJSON = JSON.stringify(content)
             DownloadFile(contentJSON, filename + ".json", "application/json")
-            
+            alert("Move the json produced/downloaded into manual_align/ \nRun align_google_lens.py to curate the cropped folder and continue with another file")
             }
 
         function DownloadFile(content, filename, mimetype) {
