@@ -41,6 +41,11 @@ This dataset possess it's own specifics : see [REMARKS.md](REMARKS.md)
 
 `python3 main.py`
 `python3 add_align.py [number_to_align]`
+
+(require add_align.py)
+`python3 generate_juxtaposed.py`
+`python3 align_google_lens.py`
+
 `ketos -vv train .... `
 
 ```
@@ -80,6 +85,11 @@ A solution available is to manually align these images. <br />
 
 Using add_align.py, web page will be generated with the ability to manually align. The web page will then produce a json that has to be moved into the mmanual_align folder. Re-using add_align.py will then clean the unused cropped image.
 
+### Manual alignments with Google Lens
+
+IAn alternative to this manual align is to use Google Lens OCR, instead of manually align the html pages produced by add_align.py, you can make use of Google Lens (which produced alternative OCR prediction). <br>
+To do this, run generate_juxtaposed() then align_google_lens(). Then follow instructions given.
+
 ### How to train a model
 
 To train/fine-tune a model using Kraken/ketos it will be necessary to regroup all pairs of text/image into a single folder beforehand, and each cropped image must have his transcription in a filename of the same prefix (prefix meaning the string before the first "." ) and ending with '.gt.txt'
@@ -95,11 +105,21 @@ Example of command : `ketos -vv train -i base.mlmodel pairs/*/*.jpg --resize new
 - For the segmentation, delete `tmp/save/segment/` and `tmp/save/ocr_save/`
 - For the OCR, delete `tmp/save/ocr_save/`
 - For the alignments, delete `tmp/cropped_match/`
-- For the manual alignments, delete `jsons in the manual_align/` folder
+- For the manual alignments, delete `manual_align/` folder,
 
 # Project Structure
 
 ```
+├── glens/
+|   |── >>> Specific folder for files related to the feature using Google Lens
+|   ├── choose_align/
+|   |   └── >>>  Contain a webpage file the user will use to accept the alignment
+|   ├── juxta_done/
+|   |   └── >>>  Contain a webpages and juxtaposed images that are already processed
+|   ├── juxta_tmp/
+|   |   └── >>>  Contain the juxtaposed image the user will have put in Google Lens
+|   └── ocr_result/
+|       └── >>>  Contain OCR result from Google Lens (unprocessed)
 ├── images/
 │   └── >>> Contains unfiltered images in their folder
 |           If the data is already associated with a transcription (same prefix) ignore this folder
